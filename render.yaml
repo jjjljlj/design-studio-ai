@@ -30,3 +30,5 @@ services:
         value: wanx2.1-t2i-turbo
       - key: QWEN_IMAGE_SIZE
         value: 1024*1536
+      - key: SUPABASE_TABLE
+        value: design_records
