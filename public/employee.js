@@ -54,14 +54,19 @@ function palette(colors = []) {
 
 function conceptCard(record) {
   const concept = record.concept || record;
+  const cardId = escapeHtml(record.id || `${concept.name || "concept"}-${record.createdAt || Date.now()}`);
   const prompts = [
     ["产品图", concept.imagePrompt],
     ["矢量图", concept.vectorPrompt],
     ["TK钩子", concept.tiktokHook]
   ].filter(([, value]) => value);
+  const imageActions = [
+    ["product", "生成产品图", "1024x1536", concept.imagePrompt],
+    ["pattern", "生成花型图", "1024x1024", concept.vectorPrompt]
+  ].filter(([, , , value]) => value);
 
   return `
-    <article class="library-card">
+    <article class="library-card" data-concept-card="${cardId}">
       <div class="library-card-head">
         <div>
           <span>${escapeHtml(record.employee?.name || "Lina")} · ${escapeHtml(dateText(record.createdAt))}</span>
@@ -90,6 +95,17 @@ function conceptCard(record) {
               <button type="button" class="copy-prompt" data-prompt="${escapeHtml(value)}">${escapeHtml(label)}</button>`
           )
           .join("")}
+      </div>
+      <div class="library-image-actions">
+        ${imageActions
+          .map(
+            ([kind, label, size, value]) => `
+              <button type="button" class="generate-concept-image" data-kind="${kind}" data-size="${size}" data-prompt="${escapeHtml(value)}">${label}</button>`
+          )
+          .join("")}
+      </div>
+      <div class="library-image-preview" data-image-output>
+        <div>当前为款式/花型数据库记录。点击上方按钮后，这里会显示AI生成图片预览。</div>
       </div>
       <div class="library-next">
         <strong>下一步</strong>
@@ -182,13 +198,76 @@ employeeForm.addEventListener("submit", async (event) => {
 refreshLibrary.addEventListener("click", loadLibrary);
 
 document.addEventListener("click", async (event) => {
-  const button = event.target.closest(".copy-prompt");
-  if (!button) return;
+  const copyButton = event.target.closest(".copy-prompt");
+  if (copyButton) {
+    try {
+      await navigator.clipboard.writeText(copyButton.dataset.prompt);
+      showToast("提示词已复制");
+    } catch {
+      showToast("复制失败，请手动选择文字");
+    }
+    return;
+  }
+
+  const imageButton = event.target.closest(".generate-concept-image");
+  if (!imageButton) return;
+
+  const pin = adminPin();
+  if (!pin) {
+    setStatus("请输入管理密码后再生成图片。", true);
+    return;
+  }
+
+  const card = imageButton.closest(".library-card");
+  const preview = card?.querySelector("[data-image-output]");
+  const prompt = imageButton.dataset.prompt;
+  if (!preview || !prompt) return;
+
+  const originalText = imageButton.textContent;
+  imageButton.disabled = true;
+  imageButton.textContent = "生成中...";
+  preview.innerHTML = `
+    <div class="library-image-loading">
+      AI图片生成中，通常需要几十秒。生成结果仅供内部预览，未授权不要转发或商用。
+    </div>`;
+  setStatus("正在生成图片预览，会消耗少量图片模型额度。");
+
   try {
-    await navigator.clipboard.writeText(button.dataset.prompt);
-    showToast("提示词已复制");
-  } catch {
-    showToast("复制失败，请手动选择文字");
+    const response = await fetch("/api/generate/image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Pin": pin
+      },
+      body: JSON.stringify({
+        prompt,
+        size: imageButton.dataset.size || "1024x1024",
+        quality: "medium"
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "图片生成失败");
+
+    const imageHtml = data.image
+      ? `<img src="${escapeHtml(data.image)}" alt="AI生成素材预览" loading="lazy" />`
+      : `<div class="image-placeholder">当前图片模型未返回图片，可复制提示词稍后重试。</div>`;
+
+    preview.innerHTML = `
+      <div class="rights-note">内部预览素材，仅供本项目确认使用。未经授权请勿下载、转发或商用。</div>
+      ${imageHtml}
+      <details>
+        <summary>查看使用的提示词</summary>
+        <p>${escapeHtml(data.prompt || prompt)}</p>
+      </details>
+      ${data.note ? `<p class="library-image-note">${escapeHtml(data.note)}</p>` : ""}`;
+    setStatus("图片预览已生成。");
+    showToast("图片预览已生成");
+  } catch (error) {
+    preview.innerHTML = `<div class="library-image-error">${escapeHtml(error.message)}</div>`;
+    setStatus(error.message, true);
+  } finally {
+    imageButton.disabled = false;
+    imageButton.textContent = originalText;
   }
 });
 
