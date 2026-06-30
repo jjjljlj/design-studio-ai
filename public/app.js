@@ -16,6 +16,7 @@ let activeModule = "sample";
 let latestResult = null;
 let latestBrief = null;
 let latestProjectLink = null;
+const workspacePinKey = "design-studio-workspace-pin";
 
 const form = document.querySelector("#briefForm");
 const resultMain = document.querySelector("#resultMain");
@@ -45,6 +46,31 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   window.setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function adminPin() {
+  return form.elements.adminPin?.value.trim() || "";
+}
+
+function adminHeaders(extra = {}) {
+  const pin = adminPin();
+  if (pin) sessionStorage.setItem(workspacePinKey, pin);
+  return {
+    ...extra,
+    ...(pin ? { "X-Admin-Pin": pin } : {})
+  };
+}
+
+function ensureAdminPin() {
+  if (adminPin()) return true;
+  showToast("请输入操作密码");
+  form.elements.adminPin?.focus();
+  return false;
+}
+
+const savedWorkspacePin = sessionStorage.getItem(workspacePinKey);
+if (savedWorkspacePin && form.elements.adminPin) {
+  form.elements.adminPin.value = savedWorkspacePin;
 }
 
 function providerName(provider) {
@@ -155,6 +181,7 @@ assetInput.addEventListener("change", () => {
 
 function formPayload() {
   const data = Object.fromEntries(new FormData(form).entries());
+  delete data.adminPin;
   const notes = [
     data.productNotes,
     `Target platform: ${data.platform || "not specified"}`,
@@ -450,13 +477,18 @@ async function requestDesign(payload) {
   try {
     const response = await fetch("/api/generate/design", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload)
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "生成失败");
+    if (!response.ok) {
+      const error = new Error(response.status === 401 ? "操作密码不正确，请重新填写" : data.error || "生成失败");
+      error.status = response.status;
+      throw error;
+    }
     return data;
   } catch (error) {
+    if (error.status === 401 || error.status === 503) throw error;
     console.warn(error);
     return mockDesign(payload);
   }
@@ -464,6 +496,8 @@ async function requestDesign(payload) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (window.location.protocol !== "file:" && !ensureAdminPin()) return;
+
   const submit = form.querySelector(".primary-action");
   submit.disabled = true;
   submit.querySelector("span").textContent = "生成中...";
@@ -493,13 +527,15 @@ saveProjectButton?.addEventListener("click", async () => {
     return;
   }
 
+  if (!ensureAdminPin()) return;
+
   saveProjectButton.disabled = true;
   saveProjectButton.textContent = "保存中...";
 
   try {
     const response = await fetch("/api/projects", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         brief: latestBrief || formPayload(),
         result: latestResult,
@@ -543,7 +579,8 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
   if (window.location.protocol === "file:") {
     resultMain.insertAdjacentHTML(
       "afterbegin",
-      `<div class="result-content generated-image">
+      `<div class="result-content generated-image protected-preview">
+        <div class="rights-note">内部预览素材，仅供本项目确认使用。未经授权请勿下载、转发或商用。</div>
         <div class="image-placeholder">当前是本地文件预览模式。启动服务并配置 OPENAI_API_KEY 后，这里会显示真实生成图片。</div>
         <div class="result-block">
           <h3>使用的提示词</h3>
@@ -555,11 +592,13 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
     return;
   }
 
+  if (!ensureAdminPin()) return;
+
   showToast("正在生成主图预览");
   try {
     const response = await fetch("/api/generate/image", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ prompt, size: "1024x1536", quality: "medium" })
     });
     const data = await response.json();
@@ -571,7 +610,8 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
 
     resultMain.insertAdjacentHTML(
       "afterbegin",
-      `<div class="result-content generated-image">
+      `<div class="result-content generated-image protected-preview">
+        <div class="rights-note">内部预览素材，仅供本项目确认使用。未经授权请勿下载、转发或商用。</div>
         ${imageHtml}
         <div class="result-block">
           <h3>使用的提示词</h3>

@@ -910,8 +910,35 @@ textarea:focus {
 }
 
 .generated-image {
+  position: relative;
   display: grid;
   gap: 12px;
+}
+
+.protected-preview::before {
+  content: "Design Studio AI Preview - Internal Use Only";
+  position: absolute;
+  left: 30px;
+  top: 30px;
+  z-index: 2;
+  padding: 7px 10px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: rgba(22, 32, 42, 0.72);
+  font-size: 12px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.rights-note {
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 111, 94, 0.26);
+  border-radius: 8px;
+  color: #6d4c43;
+  background: rgba(255, 244, 240, 0.9);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
 }
 
 .generated-image img,

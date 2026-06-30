@@ -42,11 +42,24 @@ const mimeTypes = {
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
-  ".webp": "image/webp"
+  ".webp": "image/webp",
+  ".txt": "text/plain; charset=utf-8"
+};
+
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
 };
 
 function sendJson(res, status, payload) {
-  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
+  res.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+    ...securityHeaders
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -1009,11 +1022,13 @@ async function handleApi(req, res) {
 
     const body = await readJson(req);
     if (pathname === "/api/generate/design") {
+      assertAdmin(req, url);
       const result = await callResponses(body);
       sendJson(res, 200, { ...result, generatedAt: result.generatedAt || new Date().toISOString() });
       return;
     }
     if (pathname === "/api/generate/image") {
+      assertAdmin(req, url);
       const result = await callImageGeneration(body);
       sendJson(res, 200, result);
       return;
@@ -1030,6 +1045,7 @@ async function handleApi(req, res) {
       return;
     }
     if (req.method === "POST" && pathname === "/api/projects") {
+      assertAdmin(req, url);
       const project = await saveProject(body, req);
       sendJson(res, 200, project);
       return;
@@ -1060,13 +1076,24 @@ async function serveStatic(req, res) {
 
   try {
     const content = await readFile(filePath);
+    const sensitivePage = ["/admin.html", "/employee.html", "/confirm.html", "/index.html"].includes(pathname);
     res.writeHead(200, {
-      "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream"
+      "Content-Type": mimeTypes[extname(filePath)] || "application/octet-stream",
+      ...securityHeaders,
+      ...(sensitivePage
+        ? {
+            "Cache-Control": "no-store",
+            "X-Robots-Tag": "noindex, nofollow, noarchive"
+          }
+        : {})
     });
     res.end(content);
   } catch {
     const fallback = await readFile(join(publicDir, "customer.html"));
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      ...securityHeaders
+    });
     res.end(fallback);
   }
 }

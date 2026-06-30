@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /api/
+Disallow: /admin.html
+Disallow: /employee.html
+Disallow: /confirm.html
+Disallow: /index.html
