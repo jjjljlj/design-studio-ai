@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI - 客户演示版</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="customer-page">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="customer-nav">
+      <div class="brand">
+        <div class="brand-mark">DS</div>
+        <div>
+          <strong>Design Studio AI</strong>
+          <span>Fashion product development assistant</span>
+        </div>
+      </div>
+      <nav>
+        <a href="#services">服务</a>
+        <a href="#workflow">流程</a>
+        <a href="#demo">体验</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="customer-hero">
+        <div class="customer-copy">
+          <p class="eyebrow">AI Fashion Design Studio</p>
+          <h1>为服装客户快速生成款式方案、花型方向和产品图素材</h1>
+          <p>
+            上传样衣或输入开发需求，即可获得款式开发建议、花型设计方向、产品图提示词、英文上架文案和交付清单。
+          </p>
+          <div class="customer-actions">
+            <a class="primary-link" href="./index.html">立即体验演示版</a>
+            <a class="secondary-link" href="#services">查看可交付内容</a>
+          </div>
+        </div>
+
+        <div class="customer-showcase" aria-label="产品演示预览">
+          <div class="showcase-main">
+            <span>STYLE PLAN</span>
+            <strong>Resort Floral Capsule</strong>
+          </div>
+          <div class="showcase-card showcase-pattern"></div>
+          <div class="showcase-card showcase-image">AI Product Image</div>
+          <div class="showcase-note">
+            <strong>30s</strong>
+            <span>生成初版方向</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="customer-strip" id="services">
+        <div>
+          <span>01</span>
+          <h2>款式开发</h2>
+          <p>根据目标市场、季节、版型和客户定位生成 3 个商业化设计方向。</p>
+        </div>
+        <div>
+          <span>02</span>
+          <h2>花型设计</h2>
+          <p>输出花型主题、色组建议、图案密度和数码印花延展方案。</p>
+        </div>
+        <div>
+          <span>03</span>
+          <h2>产品图生成</h2>
+          <p>准备主图、模特图、场景图、详情页图和广告素材生成提示词。</p>
+        </div>
+        <div>
+          <span>04</span>
+          <h2>上架内容</h2>
+          <p>生成英文标题、五点描述、关键词和还需要补充的资料清单。</p>
+        </div>
+      </section>
+
+      <section class="customer-workflow" id="workflow">
+        <div>
+          <p class="eyebrow">Workflow</p>
+          <h2>从客户需求到可交付素材</h2>
+        </div>
+        <ol>
+          <li>
+            <strong>提交需求</strong>
+            <span>输入品类、市场、季节、面料、风格和参考图。</span>
+          </li>
+          <li>
+            <strong>生成方案</strong>
+            <span>AI 生成款式方向、花型方向、图片提示词和上架文案。</span>
+          </li>
+          <li>
+            <strong>人工确认</strong>
+            <span>设计师检查版型、花型版权、平台合规和客户修改意见。</span>
+          </li>
+          <li>
+            <strong>交付文件</strong>
+            <span>整理产品图、花型稿、矢量图、文案和交付记录。</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="customer-demo" id="demo">
+        <div>
+          <p class="eyebrow">Try Demo</p>
+          <h2>先体验演示版，再接入真实生成模型</h2>
+          <p>
+            当前演示版用于展示流程和界面。正式上线后，可接入 ChatGPT / OpenAI 模型、图片生成、项目保存和客户账号。
+          </p>
+        </div>
+        <a class="primary-link" href="./index.html">进入设计工作台</a>
+      </section>
+      <section class="customer-feedback" id="feedback">
+        <div>
+          <p class="eyebrow">Try it now</p>
+          <h2>提交试用需求，获得回访</h2>
+          <p>留下你的信息和目标场景，我们会在下一次演示前整理一版适配你品类的生成清单与报价框架建议。</p>
+        </div>
+
+        <form id="feedbackForm" class="feedback-form">
+          <label>姓名/昵称
+            <input name="name" placeholder="例如：王总 / Sarah" />
+          </label>
+          <label>公司/品牌
+            <input name="company" placeholder="例如：XX Fashion" />
+          </label>
+          <div class="two-col">
+            <label>邮箱
+              <input name="email" type="email" placeholder="name@company.com" />
+            </label>
+            <label>手机号
+              <input name="phone" type="tel" placeholder="+86 13800000000" />
+            </label>
+          </div>
+          <label>业务阶段
+            <select name="businessStage">
+              <option>请选择</option>
+              <option>样衣开发中</option>
+              <option>已有样衣/图案素材</option>
+              <option>上架前准备期</option>
+              <option>已在投放/测试</option>
+            </select>
+          </label>
+          <label>想解决的核心问题
+            <textarea name="useCase" rows="4" placeholder="例如：快出30套花型概念、产品图文案、TikTok脚本"></textarea>
+          </label>
+          <label>目标市场 & 目标人群
+            <input name="expectedResult" placeholder="例如：US / 女性 18-35, 夏装短款" />
+          </label>
+          <label>预算范围
+            <input name="budget" placeholder="例如：周样本 1-3个方案，先试用3-5单" />
+          </label>
+          <label>备注
+            <textarea name="notes" rows="4" placeholder="补充你的SKU结构、尺码、风格偏好"></textarea>
+          </label>
+          <label>偏好回复时间
+            <input name="preferredContactTime" placeholder="例如：工作日 10:00-18:00 / 微信优先" />
+          </label>
+          <label class="feedback-inline">
+            <input type="checkbox" name="agreeData" />
+            我同意仅用于项目咨询记录与演示优化，不用于其他商业用途。
+          </label>
+          <div class="feedback-actions">
+            <button type="submit" class="primary-link">提交试用申请</button>
+            <span id="feedbackStatus" aria-live="polite" class="feedback-status"></span>
+          </div>
+        </form>
+      </section>
+    </main>
+    <script src="./customer.js"></script>
+  </body>
+</html>

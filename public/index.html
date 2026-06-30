@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">DS</div>
+          <div>
+            <strong>Design Studio AI</strong>
+            <span>服装设计开发工作台</span>
+          </div>
+        </div>
+
+        <nav class="module-nav" aria-label="模块">
+          <button class="nav-item active" data-module="style">
+            <span>款</span>
+            <strong>款式开发</strong>
+          </button>
+          <button class="nav-item" data-module="pattern">
+            <span>花</span>
+            <strong>花型设计</strong>
+          </button>
+          <button class="nav-item" data-module="product">
+            <span>图</span>
+            <strong>产品图生成</strong>
+          </button>
+          <button class="nav-item" data-module="vector">
+            <span>矢</span>
+            <strong>数码矢量图</strong>
+          </button>
+        </nav>
+
+        <div class="progress-panel">
+          <span class="panel-label">交付流程</span>
+          <ol>
+            <li class="done">客户需求</li>
+            <li class="active">AI 方案</li>
+            <li>设计确认</li>
+            <li>文件交付</li>
+          </ol>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Fashion Product Development</p>
+            <h1>把客户需求变成款式方案、花型方向、产品图和矢量稿</h1>
+            <p class="hero-subtitle">
+              适合服装开发、跨境电商上新、数码印花、样衣图生成和客户提案。
+            </p>
+          </div>
+
+          <div class="hero-preview" aria-label="设计预览">
+            <div class="fabric-card fabric-main">
+              <span>SS26</span>
+              <strong>Resort Floral</strong>
+            </div>
+            <div class="fabric-card fabric-print"></div>
+            <div class="fabric-card fabric-photo">
+              <span>AI Model Image</span>
+            </div>
+          </div>
+        </header>
+
+        <section class="quick-stats">
+          <div>
+            <span>4</span>
+            <p>核心生成模块</p>
+          </div>
+          <div>
+            <span>3</span>
+            <p>默认设计方向</p>
+          </div>
+          <div>
+            <span>30</span>
+            <p>英文关键词</p>
+          </div>
+          <div class="status-strip">
+            <small>运行状态</small>
+            <strong id="apiStatus">演示模式</strong>
+          </div>
+        </section>
+
+        <section class="work-grid">
+          <form class="intake-panel" id="briefForm">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">Client Brief</p>
+                <h2>需求录入</h2>
+              </div>
+              <button type="button" id="fillDemo">填入示例</button>
+            </div>
+
+            <label>
+              客户 / 品牌
+              <input name="customer" placeholder="例如：美国女装独立站客户" />
+            </label>
+
+            <div class="two-col">
+              <label>
+                品类
+                <input name="category" placeholder="女装连衣裙 / 运动上衣" />
+              </label>
+              <label>
+                目标市场
+                <select name="market">
+                  <option>US</option>
+                  <option>UK</option>
+                  <option>EU</option>
+                  <option>Japan</option>
+                  <option>Southeast Asia</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="two-col">
+              <label>
+                季节
+                <select name="season">
+                  <option>Spring / Summer</option>
+                  <option>Fall / Winter</option>
+                  <option>Resort</option>
+                  <option>All Season</option>
+                </select>
+              </label>
+              <label>
+                面料观感
+                <input name="material" placeholder="棉感、雪纺、针织、牛仔等" />
+              </label>
+            </div>
+
+            <label>
+              风格方向
+              <input name="style" placeholder="通勤、度假、甜美、极简、街头、户外等" />
+            </label>
+
+            <label>
+              颜色 / 花型方向
+              <input name="colors" placeholder="黑白灰、莫兰迪、植物小花、几何纹等" />
+            </label>
+
+            <label>
+              商品与客户要求
+              <textarea
+                name="productNotes"
+                rows="6"
+                placeholder="输入版型、领口、袖型、长度、图案位置、平台用途、禁忌点等"
+              ></textarea>
+            </label>
+
+            <div class="upload-zone" id="uploadZone">
+              <input id="assetInput" type="file" accept="image/*" multiple />
+              <div>
+                <strong>上传样衣 / 花型参考</strong>
+                <span>可预览多张图片，后续可接云存储、抠图和视觉识别。</span>
+              </div>
+            </div>
+
+            <div class="asset-preview" id="assetPreview"></div>
+
+            <button class="primary-action" type="submit">
+              <span>生成设计方案</span>
+              <b>AI</b>
+            </button>
+          </form>
+
+          <section class="output-panel">
+            <div class="section-heading">
+              <div>
+                <p class="section-kicker">AI Workspace</p>
+                <h2 id="moduleTitle">款式开发</h2>
+              </div>
+              <div class="tool-actions">
+                <button type="button" id="copyResult">复制结果</button>
+                <button type="button" id="generateImage">生成产品图</button>
+              </div>
+            </div>
+
+            <div class="module-tabs">
+              <button class="tab active" data-module="style">Style</button>
+              <button class="tab" data-module="pattern">Pattern</button>
+              <button class="tab" data-module="product">Image</button>
+              <button class="tab" data-module="vector">Vector</button>
+            </div>
+
+            <div class="result-layout">
+              <div class="result-main" id="resultMain">
+                <div class="empty-state">
+                  <div class="sample-board">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <h3>先录入客户需求</h3>
+                  <p>系统会输出款式方向、花型策略、产品图提示词、矢量图提示词和英文上架文案。</p>
+                </div>
+              </div>
+
+              <aside class="delivery-panel">
+                <h3>交付清单</h3>
+                <ul>
+                  <li>设计方向 3 版</li>
+                  <li>产品图提示词</li>
+                  <li>花型 / 矢量提示词</li>
+                  <li>英文标题与五点</li>
+                  <li>缺失资料提醒</li>
+                </ul>
+                <div class="swatches">
+                  <span style="--swatch:#0f766e"></span>
+                  <span style="--swatch:#ef6f5e"></span>
+                  <span style="--swatch:#e8b84f"></span>
+                  <span style="--swatch:#2f4050"></span>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
