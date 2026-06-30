@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Design Studio AI</title>
+    <title>Design Studio AI - 样衣到上架素材工作台</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -16,78 +16,78 @@
           <div class="brand-mark">DS</div>
           <div>
             <strong>Design Studio AI</strong>
-            <span>服装设计开发工作台</span>
+            <span>样衣到上架素材工作台</span>
           </div>
         </div>
 
-        <nav class="module-nav" aria-label="模块">
-          <button class="nav-item active" data-module="style">
-            <span>款</span>
-            <strong>款式开发</strong>
+        <nav class="module-nav" aria-label="工作模块">
+          <button class="nav-item active" data-module="sample">
+            <span>样</span>
+            <strong>样衣分析</strong>
           </button>
-          <button class="nav-item" data-module="pattern">
-            <span>花</span>
-            <strong>花型设计</strong>
-          </button>
-          <button class="nav-item" data-module="product">
+          <button class="nav-item" data-module="image">
             <span>图</span>
-            <strong>产品图生成</strong>
+            <strong>图片规划</strong>
           </button>
-          <button class="nav-item" data-module="vector">
-            <span>矢</span>
-            <strong>数码矢量图</strong>
+          <button class="nav-item" data-module="listing">
+            <span>文</span>
+            <strong>上架文案</strong>
+          </button>
+          <button class="nav-item" data-module="tiktok">
+            <span>TK</span>
+            <strong>短视频脚本</strong>
           </button>
         </nav>
 
         <div class="progress-panel">
-          <span class="panel-label">交付流程</span>
+          <span class="panel-label">客户交付流程</span>
           <ol>
-            <li class="done">客户需求</li>
-            <li class="active">AI 方案</li>
-            <li>设计确认</li>
-            <li>文件交付</li>
+            <li class="done">上传样衣/资料</li>
+            <li class="active">生成开发方案</li>
+            <li>客户勾选方向</li>
+            <li>整理上架素材</li>
           </ol>
         </div>
       </aside>
 
       <main class="workspace">
-        <header class="hero">
+        <header class="hero sample-hero">
           <div class="hero-copy">
-            <p class="eyebrow">Fashion Product Development</p>
-            <h1>把客户需求变成款式方案、花型方向、产品图和矢量稿</h1>
+            <p class="eyebrow">Sample-to-Sell Studio</p>
+            <h1>把一件样衣，整理成能给客户确认、能上架、能拍短视频的素材包</h1>
             <p class="hero-subtitle">
-              适合服装开发、跨境电商上新、数码印花、样衣图生成和客户提案。
+              面向跨境服装客户：上传样衣图、填写市场和平台，系统输出款式开发建议、图片清单、英文 Listing、TK 脚本和缺失资料提醒。
             </p>
           </div>
 
-          <div class="hero-preview" aria-label="设计预览">
+          <div class="hero-preview" aria-label="素材包预览">
             <div class="fabric-card fabric-main">
-              <span>SS26</span>
-              <strong>Resort Floral</strong>
+              <span>PROJECT</span>
+              <strong>Sample to Sell</strong>
             </div>
             <div class="fabric-card fabric-print"></div>
             <div class="fabric-card fabric-photo">
-              <span>AI Model Image</span>
+              <span>Main Image + TK Cover</span>
             </div>
           </div>
         </header>
 
         <section class="quick-stats">
           <div>
-            <span>4</span>
-            <p>核心生成模块</p>
+            <span>1</span>
+            <p>样衣资料入口</p>
+          </div>
+          <div>
+            <span>6</span>
+            <p>默认交付素材</p>
           </div>
           <div>
             <span>3</span>
-            <p>默认设计方向</p>
-          </div>
-          <div>
-            <span>30</span>
-            <p>英文关键词</p>
+            <p>客户确认方向</p>
           </div>
           <div class="status-strip">
-            <small>运行状态</small>
-            <strong id="apiStatus">演示模式</strong>
+            <small>模型状态</small>
+            <strong id="apiStatus">待检测</strong>
           </div>
         </section>
 
@@ -96,20 +96,20 @@
             <div class="section-heading">
               <div>
                 <p class="section-kicker">Client Brief</p>
-                <h2>需求录入</h2>
+                <h2>样衣资料录入</h2>
               </div>
               <button type="button" id="fillDemo">填入示例</button>
             </div>
 
             <label>
               客户 / 品牌
-              <input name="customer" placeholder="例如：美国女装独立站客户" />
+              <input name="customer" placeholder="例如：美国女装独立站客户 / Amazon 卖家" />
             </label>
 
             <div class="two-col">
               <label>
-                品类
-                <input name="category" placeholder="女装连衣裙 / 运动上衣" />
+                商品品类
+                <input name="category" placeholder="例如：女装连衣裙 / 外套 / 运动上衣" />
               </label>
               <label>
                 目标市场
@@ -125,6 +125,16 @@
 
             <div class="two-col">
               <label>
+                目标平台
+                <select name="platform">
+                  <option>Amazon</option>
+                  <option>TikTok Shop</option>
+                  <option>Shopify</option>
+                  <option>SHEIN / Temu 类平台</option>
+                  <option>客户提案/工厂打样</option>
+                </select>
+              </label>
+              <label>
                 季节
                 <select name="season">
                   <option>Spring / Summer</option>
@@ -133,43 +143,65 @@
                   <option>All Season</option>
                 </select>
               </label>
+            </div>
+
+            <div class="two-col">
               <label>
                 面料观感
-                <input name="material" placeholder="棉感、雪纺、针织、牛仔等" />
+                <input name="material" placeholder="棉感、雪纺、针织、牛仔、亚麻感等" />
+              </label>
+              <label>
+                颜色 / 花型
+                <input name="colors" placeholder="黑白灰、莫兰迪、小花、几何纹等" />
               </label>
             </div>
 
             <label>
-              风格方向
-              <input name="style" placeholder="通勤、度假、甜美、极简、街头、户外等" />
+              风格定位
+              <input name="style" placeholder="通勤、度假、甜美、极简、街头、户外、居家等" />
             </label>
 
             <label>
-              颜色 / 花型方向
-              <input name="colors" placeholder="黑白灰、莫兰迪、植物小花、几何纹等" />
-            </label>
-
-            <label>
-              商品与客户要求
+              样衣关键细节和不能改变的地方
               <textarea
                 name="productNotes"
                 rows="6"
-                placeholder="输入版型、领口、袖型、长度、图案位置、平台用途、禁忌点等"
+                placeholder="例如：V领、泡泡袖、腰部抽绳、长度到小腿；颜色不能变；印花位置不能变；不要加品牌 logo。"
               ></textarea>
             </label>
+
+            <div class="two-col">
+              <label>
+                尺码资料
+                <select name="sizeStatus">
+                  <option>暂无尺码表</option>
+                  <option>已有尺码表</option>
+                  <option>需要 AI 整理尺码说明</option>
+                </select>
+              </label>
+              <label>
+                当前阶段
+                <select name="stage">
+                  <option>客户初选方向</option>
+                  <option>已确认样衣，准备上架</option>
+                  <option>准备拍摄/生成产品图</option>
+                  <option>准备投放 TK 内容</option>
+                </select>
+              </label>
+            </div>
 
             <div class="upload-zone" id="uploadZone">
               <input id="assetInput" type="file" accept="image/*" multiple />
               <div>
-                <strong>上传样衣 / 花型参考</strong>
-                <span>可预览多张图片，后续可接云存储、抠图和视觉识别。</span>
+                <strong>上传样衣 / 花型 / 参考图</strong>
+                <span>支持多张预览。当前版本先用于整理素材清单，后续接入图像识别和云端保存。</span>
               </div>
             </div>
 
             <div class="asset-preview" id="assetPreview"></div>
 
             <button class="primary-action" type="submit">
-              <span>生成设计方案</span>
+              <span>生成素材包方案</span>
               <b>AI</b>
             </button>
           </form>
@@ -177,20 +209,20 @@
           <section class="output-panel">
             <div class="section-heading">
               <div>
-                <p class="section-kicker">AI Workspace</p>
-                <h2 id="moduleTitle">款式开发</h2>
+                <p class="section-kicker">AI Deliverables</p>
+                <h2 id="moduleTitle">样衣分析</h2>
               </div>
               <div class="tool-actions">
                 <button type="button" id="copyResult">复制结果</button>
-                <button type="button" id="generateImage">生成产品图</button>
+                <button type="button" id="generateImage">生成主图预览</button>
               </div>
             </div>
 
             <div class="module-tabs">
-              <button class="tab active" data-module="style">Style</button>
-              <button class="tab" data-module="pattern">Pattern</button>
-              <button class="tab" data-module="product">Image</button>
-              <button class="tab" data-module="vector">Vector</button>
+              <button class="tab active" data-module="sample">分析</button>
+              <button class="tab" data-module="image">图片</button>
+              <button class="tab" data-module="listing">文案</button>
+              <button class="tab" data-module="tiktok">TK</button>
             </div>
 
             <div class="result-layout">
@@ -202,19 +234,20 @@
                     <span></span>
                     <span></span>
                   </div>
-                  <h3>先录入客户需求</h3>
-                  <p>系统会输出款式方向、花型策略、产品图提示词、矢量图提示词和英文上架文案。</p>
+                  <h3>先录入一件样衣的基本资料</h3>
+                  <p>系统会输出：商品定位、图片生成清单、英文上架文案、TK 短视频脚本、客户缺失资料提醒和下一步执行动作。</p>
                 </div>
               </div>
 
               <aside class="delivery-panel">
-                <h3>交付清单</h3>
+                <h3>默认交付</h3>
                 <ul>
-                  <li>设计方向 3 版</li>
-                  <li>产品图提示词</li>
-                  <li>花型 / 矢量提示词</li>
+                  <li>样衣识别与卖点</li>
+                  <li>主图/模特图/场景图清单</li>
+                  <li>产品图生成提示词</li>
                   <li>英文标题与五点</li>
-                  <li>缺失资料提醒</li>
+                  <li>TK 15-30 秒脚本</li>
+                  <li>客户确认问题</li>
                 </ul>
                 <div class="swatches">
                   <span style="--swatch:#0f766e"></span>

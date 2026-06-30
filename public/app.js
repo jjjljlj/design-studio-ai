@@ -1,18 +1,18 @@
 const moduleLabels = {
-  style: "款式开发",
-  pattern: "花型设计",
-  product: "产品图生成",
-  vector: "数码矢量图"
+  sample: "样衣分析",
+  image: "图片规划",
+  listing: "上架文案",
+  tiktok: "TK短视频"
 };
 
 const moduleDeliverables = {
-  style: "style concept, silhouette development, ecommerce listing copy",
-  pattern: "repeat pattern direction, colorways, textile print prompt",
-  product: "model photo prompt, lifestyle image prompt, marketplace image plan",
-  vector: "clean vector tracing prompt, layered SVG direction, print-ready artwork brief"
+  sample: "sample analysis, selling points, target customer, missing inputs, next actions",
+  image: "main image plan, white background image, model image, lifestyle image, detail image, ad image prompts",
+  listing: "English ecommerce title, five bullets, long description, keywords, size and care notes",
+  tiktok: "three 15-30 second TikTok scripts, hooks, shots, English voiceover, captions and editing notes"
 };
 
-let activeModule = "style";
+let activeModule = "sample";
 let latestResult = null;
 
 const form = document.querySelector("#briefForm");
@@ -44,13 +44,16 @@ document.querySelector("#fillDemo").addEventListener("click", () => {
   form.customer.value = "US boutique womenswear buyer";
   form.category.value = "women's printed midi dress";
   form.market.value = "US";
+  form.platform.value = "TikTok Shop";
   form.season.value = "Spring / Summer";
   form.material.value = "lightweight woven fabric, soft drape, breathable handfeel";
-  form.style.value = "resort, everyday feminine, easy vacation outfit";
   form.colors.value = "sage green base, ivory micro floral, soft coral accent";
+  form.style.value = "resort, everyday feminine, easy vacation outfit";
   form.productNotes.value =
-    "Need 3 commercial directions for quick sampling. Keep the shape wearable, avoid luxury brand references, prepare prompts for model images, lifestyle ads, seamless floral print and editable vector artwork.";
-  showToast("示例需求已填入");
+    "Keep the midi length, V neckline, short flutter sleeves, waist seam and small floral print. Do not add logo. Need marketplace image plan, listing copy, and TikTok content for first test.";
+  form.sizeStatus.value = "暂无尺码表";
+  form.stage.value = "准备投放 TK 内容";
+  showToast("示例资料已填入");
 });
 
 assetInput.addEventListener("change", () => {
@@ -65,8 +68,19 @@ assetInput.addEventListener("change", () => {
 
 function formPayload() {
   const data = Object.fromEntries(new FormData(form).entries());
+  const notes = [
+    data.productNotes,
+    `Target platform: ${data.platform || "not specified"}`,
+    `Size status: ${data.sizeStatus || "not specified"}`,
+    `Business stage: ${data.stage || "not specified"}`,
+    `Uploaded reference image count: ${assetInput.files.length}`
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return {
     ...data,
+    productNotes: notes,
     module: moduleLabels[activeModule],
     deliverables: moduleDeliverables[activeModule],
     assetCount: assetInput.files.length
@@ -74,96 +88,128 @@ function formPayload() {
 }
 
 function mockDesign(payload) {
-  const category = payload.category || "women's fashion top";
+  const category = payload.category || "women's fashion item";
+  const market = payload.market || "US";
+  const platform = payload.platform || "TikTok Shop";
+
   return {
     mode: "demo",
-    summary: "已生成一版可用于客户沟通、图片生成和上架准备的设计方案。",
-    conceptName: "Soft Utility Resort Capsule",
+    summary: `已为 ${market} 市场生成一版“样衣到上架素材”的执行方案，可用于客户确认、图片生成和上架准备。`,
+    conceptName: "Sample-to-Sell Launch Pack",
     positioning: [
-      `面向 ${payload.market || "US"} 市场的轻商业款式，适合快速打样和平台测试。`,
-      "视觉重点放在上身效果、面料垂感、花型清晰度和可批量延展性。",
-      "先用 3 个方向做客户选择，再确定版型、色组和图案密度。"
+      `${category} 先定位为轻商业测试款，重点验证主图点击、上身效果和短视频前 3 秒吸引力。`,
+      `平台优先级建议：${platform} 先做快速内容测试，再把表现好的图片和卖点复用到其他渠道。`,
+      "当前阶段先不要追求复杂功能，先拿到客户确认：款式方向、图片风格、英文卖点和补充资料。"
     ],
     designDirections: [
       {
-        name: "Clean Everyday Fit",
-        details: `${category} 保持简洁轮廓，突出舒适、百搭、易搭配，适合作为主推基础款。`,
-        risk: "需要补充尺码表和面料克重，避免后续客户对版型预期不一致。"
+        name: "Direction A - Clean Marketplace Hero",
+        details: "主图保持干净、真实、易判断版型。模特正面自然站姿，商品轮廓清晰，背景减少干扰，用于提升首屏信任感。",
+        risk: "需要补充样衣正反面图和细节图，避免生成图改变领口、袖型、长度、颜色或印花位置。"
       },
       {
-        name: "Botanical Micro Print",
-        details: "采用小面积植物花型，适合连衣裙、上衣、家居服和度假系列延展。",
-        risk: "花型必须避开现有品牌图案和版权图库素材。"
+        name: "Direction B - Lifestyle Conversion Scene",
+        details: "围绕通勤、度假或周末出行场景展示上身效果，让客户看到真实穿搭用途，适合详情页和广告图。",
+        risk: "不要加入未经授权品牌、地标、明星脸或虚假折扣文字。"
       },
       {
-        name: "Marketplace Hero Image",
-        details: "主图用干净模特图，详情页补充面料、版型、场景和细节卖点。",
-        risk: "生成图必须锁定样衣颜色、领口、袖型、长度和印花位置。"
+        name: "Direction C - TikTok Hook Test",
+        details: "短视频先测 3 个角度：显瘦/舒适、场景穿搭、细节近拍。每条 15-30 秒，重点看前 3 秒留存和点击。",
+        risk: "不要承诺 100% 显瘦、永久不皱、不起球等无法验证的效果。"
       }
     ],
     imagePrompts: [
       {
         usage: "main image",
         ratio: "4:5",
-        prompt: `Professional ecommerce model photo for ${category}, natural daylight studio, clean background, realistic fabric texture, accurate garment structure, relaxed confident pose, high detail, marketplace-ready composition`,
-        negative: "do not change garment color, no extra logo, no brand text, no distorted hands, no wrong buttons, no messy seams"
+        prompt: `Professional ecommerce model photo for ${category}, natural daylight studio, clean neutral background, accurate garment color and silhouette, realistic fabric texture, full outfit visible, marketplace-ready composition`,
+        negative: "do not change garment color, no extra logo, no brand text, no distorted hands, no wrong neckline, no incorrect sleeve shape, no messy garment structure"
       },
       {
-        usage: "social ad",
+        usage: "lifestyle image",
+        ratio: "4:5",
+        prompt: `Lifestyle fashion photo for ${category}, bright street or vacation setting, natural movement, clear garment fit, authentic overseas ecommerce look, soft daylight, premium but realistic styling`,
+        negative: "no luxury brand reference, no celebrity face, no fake review text, no unreadable typography, no over-edited skin"
+      },
+      {
+        usage: "TikTok cover",
         ratio: "9:16",
-        prompt: `TikTok-style lifestyle product shot for ${category}, casual movement, real street or bright home setting, clear full outfit, natural expression, commercial fashion photography`,
-        negative: "no luxury brand reference, no celebrity face, no fake discount text, no unreadable typography"
+        prompt: `Vertical TikTok cover image for ${category}, model mid-motion, clear front view, strong outfit silhouette, space for short English headline, bright clean composition`,
+        negative: "no wrong text, no watermark, no logo, no extra accessories that hide the product"
       }
     ],
-    vectorPrompt: "Create a clean seamless botanical vector repeat, editable flat colors, organized layers, no brand marks, suitable for textile digital printing and colorway expansion.",
+    vectorPrompt:
+      "Create a clean editable textile vector artwork based on the product print direction, organized layers, flat colors, seamless repeat option, no brand marks, suitable for digital printing and colorway expansion.",
     listingCopy: {
-      title: "Women Casual Printed Top, Soft Everyday Blouse for Work, Travel and Weekend Outfits",
+      title: "Women Printed Midi Dress, Lightweight Casual Vacation Dress for Spring Summer Outfits",
       bullets: [
-        "Soft, easy-to-style look designed for everyday wear and travel packing.",
-        "Clean fit pairs well with jeans, skirts, trousers, and layered outfits.",
-        "Print direction adds visual interest without feeling too loud for daily use.",
-        "Great for casual office days, weekend plans, vacation styling, and gifting.",
-        "Check the size chart before ordering for the best fit."
+        "Easy everyday style designed for travel, brunch, weekend plans, and warm-weather outfits.",
+        "Lightweight woven handfeel creates a soft, comfortable look without feeling too formal.",
+        "Clean silhouette pairs well with sandals, sneakers, light jackets, and simple accessories.",
+        "Small print direction adds visual interest while staying wearable for daily styling.",
+        "Please check the size chart before ordering; manual measurement may vary slightly."
       ],
       keywords: [
-        "women printed top",
-        "casual blouse",
-        "everyday shirt",
-        "soft blouse",
-        "travel outfit",
-        "work blouse",
-        "weekend top",
-        "botanical print",
-        "summer blouse",
-        "lightweight top",
-        "women fashion",
-        "resort wear",
-        "vacation top",
-        "office casual",
-        "comfortable shirt",
-        "loose fit top",
-        "gift for women",
-        "stylish blouse",
-        "day to night outfit",
-        "layering top",
-        "printed blouse",
+        "women midi dress",
+        "printed dress",
+        "summer dress",
+        "vacation dress",
+        "casual dress",
+        "floral dress",
         "spring outfit",
-        "fall outfit",
-        "basic fashion top",
-        "boutique style",
+        "resort wear",
+        "travel outfit",
+        "weekend dress",
+        "boutique dress",
+        "lightweight dress",
+        "women fashion",
+        "TikTok outfit",
         "ecommerce fashion",
-        "model photo prompt",
-        "textile print",
-        "vector pattern",
-        "product image"
+        "model photo",
+        "lifestyle image",
+        "product photo",
+        "fashion listing",
+        "women clothing",
+        "daily wear",
+        "soft dress",
+        "comfortable dress",
+        "gift for women",
+        "work casual",
+        "holiday outfit",
+        "street style",
+        "fashion content",
+        "main image",
+        "detail image"
       ]
     },
-    nextInputsNeeded: ["样衣正反面照片", "面料成分和克重", "目标平台", "成本区间", "尺码表", "颜色和库存计划"]
+    tiktokScripts: [
+      {
+        hook: "This is the dress I pack when I do not want to overthink an outfit.",
+        shots: ["0-3s front mirror movement", "4-10s close-up fabric and print", "11-20s walking shot", "21-28s styling with bag and sandals"],
+        caption: "Easy vacation outfit, no overthinking.",
+        voiceover: "Light, easy, and ready in one piece. This dress works for brunch, travel, and warm weekend plans."
+      },
+      {
+        hook: "One dress, three simple ways to wear it.",
+        shots: ["show base dress", "add light cardigan", "switch to sneakers", "detail close-up"],
+        caption: "3 ways to style one printed dress.",
+        voiceover: "Keep it casual with sneakers, dress it up with sandals, or layer it for cooler evenings."
+      },
+      {
+        hook: "The print is subtle, but it makes the whole outfit feel finished.",
+        shots: ["print close-up", "waist and neckline detail", "full-body pose", "final product hero shot"],
+        caption: "Small print, easy outfit.",
+        voiceover: "A soft print gives the look personality without feeling too loud for everyday wear."
+      }
+    ],
+    nextInputsNeeded: [
+      "样衣正面、背面、侧面和细节照片",
+      "面料成分、克重、弹力和是否透光",
+      "尺码表和模特身高体重参考",
+      "目标售价、成本区间和主要竞品",
+      "客户最想先测试的平台和预算"
+    ]
   };
-}
-
-function list(items = []) {
-  return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
 }
 
 function escapeHtml(value) {
@@ -175,8 +221,45 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function list(items = []) {
+  return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+
+function renderScripts(scripts = []) {
+  if (!scripts.length) {
+    return `
+      <div class="result-block">
+        <h3>TK 短视频脚本</h3>
+        <p>当前模型未返回脚本字段。建议下一版补充：3 秒钩子、分镜、英文口播、字幕和剪辑建议。</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="result-block">
+      <h3>TK 短视频脚本</h3>
+      <div class="prompt-grid">
+        ${scripts
+          .map(
+            (script, index) => `
+              <div class="prompt-box">
+                <p><strong>Script ${index + 1}</strong></p>
+                <p><strong>Hook:</strong> ${escapeHtml(script.hook)}</p>
+                ${list(script.shots || [])}
+                <p><strong>Voiceover:</strong> ${escapeHtml(script.voiceover)}</p>
+                <p><strong>Caption:</strong> ${escapeHtml(script.caption)}</p>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderResult(data) {
   latestResult = data;
+
   const directions = (data.designDirections || [])
     .map(
       (item, index) => `
@@ -204,7 +287,7 @@ function renderResult(data) {
     <div class="result-content">
       <div class="result-block concept-card">
         <span class="card-index">AI</span>
-        <h3>${escapeHtml(data.conceptName || "Concept")}</h3>
+        <h3>${escapeHtml(data.conceptName || "Sample-to-Sell Launch Pack")}</h3>
         <p>${escapeHtml(data.summary || "")}</p>
         ${list(data.positioning || [])}
       </div>
@@ -212,7 +295,7 @@ function renderResult(data) {
       <div class="prompt-grid">${directions}</div>
 
       <div class="result-block">
-        <h3>产品图提示词</h3>
+        <h3>图片生成清单</h3>
         <div class="prompt-grid">${prompts}</div>
       </div>
 
@@ -228,14 +311,16 @@ function renderResult(data) {
       </div>
 
       <div class="result-block">
-        <h3>关键词</h3>
+        <h3>搜索关键词</h3>
         <div class="tag-cloud">
           ${(data.listingCopy?.keywords || []).map((keyword) => `<span>${escapeHtml(keyword)}</span>`).join("")}
         </div>
       </div>
 
+      ${renderScripts(data.tiktokScripts || [])}
+
       <div class="result-block">
-        <h3>还需要补充</h3>
+        <h3>还需要客户补充</h3>
         ${list(data.nextInputsNeeded || [])}
       </div>
     </div>
@@ -256,7 +341,8 @@ async function requestDesign(payload) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "生成失败");
     return data;
-  } catch {
+  } catch (error) {
+    console.warn(error);
     return mockDesign(payload);
   }
 }
@@ -265,18 +351,18 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const submit = form.querySelector(".primary-action");
   submit.disabled = true;
-  submit.querySelector("span").textContent = "生成中";
+  submit.querySelector("span").textContent = "生成中...";
 
   try {
     const data = await requestDesign(formPayload());
     renderResult(data);
     document.querySelector("#apiStatus").textContent = data.mode === "demo" ? "演示输出" : "已连接模型";
-    showToast("方案已生成");
+    showToast("素材包方案已生成");
   } catch (error) {
     showToast(error.message);
   } finally {
     submit.disabled = false;
-    submit.querySelector("span").textContent = "生成设计方案";
+    submit.querySelector("span").textContent = "生成素材包方案";
   }
 });
 
@@ -292,7 +378,7 @@ document.querySelector("#copyResult").addEventListener("click", async () => {
 document.querySelector("#generateImage").addEventListener("click", async () => {
   const prompt = latestResult?.imagePrompts?.[0]?.prompt;
   if (!prompt) {
-    showToast("请先生成方案");
+    showToast("请先生成素材包方案");
     return;
   }
 
@@ -311,7 +397,7 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
     return;
   }
 
-  showToast("正在生成产品图");
+  showToast("正在生成主图预览");
   try {
     const response = await fetch("/api/generate/image", {
       method: "POST",

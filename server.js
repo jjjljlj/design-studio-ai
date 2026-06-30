@@ -1,4 +1,4 @@
-import http from "node:http";
+﻿import http from "node:http";
 import { appendFile, mkdir, readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,138 +69,145 @@ function buildDesignPrompt(payload) {
   } = payload;
 
   return `
-You are an expert cross-border fashion product development director.
+You are a senior cross-border ecommerce fashion operator and product development director.
 Return concise JSON only. No markdown.
 
 Business context:
-- Module: ${module}
+- Current workspace module: ${module}
 - Customer / brand: ${customer || "unknown"}
 - Product category: ${category || "apparel or textile product"}
 - Target market: ${market || "US"}
 - Season: ${season || "not specified"}
 - Style direction: ${style || "commercial, wearable, platform-ready"}
 - Material / handfeel: ${material || "not specified"}
-- Color direction: ${colors || "not specified"}
-- Product notes: ${productNotes || "not specified"}
-- Required deliverables: ${deliverables || "style concept, pattern direction, product image prompt, vector prompt"}
+- Color / print direction: ${colors || "not specified"}
+- Product notes and constraints: ${productNotes || "not specified"}
+- Required deliverables: ${deliverables || "sample analysis, image plan, listing copy, TikTok scripts"}
 
 Important constraints:
-- Do not invent certifications, sales data, user reviews, brand authorization, or test reports.
+- Do not invent sales data, ratings, certifications, test reports, shipping promises, stock, or platform endorsements.
 - Avoid luxury-brand imitation, trademark references, celebrity likeness, and risky claims.
-- Keep garment structure, color, print, fabric texture, neckline, sleeve, length, buttons, zippers, and motifs consistent when reference photos are supplied.
-- Customer-facing copy should be natural English for overseas ecommerce buyers.
+- Keep garment structure, color, print, fabric texture, neckline, sleeve, length, buttons, zippers, and motifs consistent with the sample.
+- Customer-facing title, bullets, keywords, voiceover, and captions should be natural English for overseas ecommerce buyers.
+- Operator notes, risks, and missing inputs should be in Chinese.
+- TikTok scripts should be directly shootable in 15-30 seconds.
 
 JSON shape:
 {
-  "summary": "one sentence Chinese summary for the operator",
-  "conceptName": "English commercial concept name",
-  "positioning": ["3 Chinese bullets"],
+  "summary": "one Chinese sentence summarizing the deliverable",
+  "conceptName": "English commercial launch-pack name",
+  "positioning": ["3 Chinese bullets about target user, use case, and test priority"],
   "designDirections": [
     {"name":"English direction name","details":"Chinese execution note","risk":"Chinese production or compliance risk"}
   ],
   "imagePrompts": [
-    {"usage":"main image / detail / ad / social","ratio":"1:1 or 4:5 or 9:16","prompt":"English image prompt","negative":"English negative prompt"}
+    {"usage":"main image / white background / model / lifestyle / detail / ad / TikTok cover","ratio":"1:1 or 4:5 or 3:4 or 9:16","prompt":"English image prompt","negative":"English negative prompt"}
   ],
-  "vectorPrompt": "English prompt for clean repeatable vector artwork / digital tracing",
+  "vectorPrompt": "English prompt for clean editable textile vector artwork or digital tracing",
   "listingCopy": {
     "title": "English ecommerce title",
     "bullets": ["5 English bullets"],
     "keywords": ["30 English search keywords"]
   },
+  "tiktokScripts": [
+    {"hook":"English 3-second hook","shots":["4 short shot notes"],"voiceover":"English voiceover","caption":"English caption"}
+  ],
   "nextInputsNeeded": ["Chinese list of missing fields"]
 }`.trim();
 }
 
 function mockDesign(payload) {
-  const category = payload.category || "women's fashion top";
+  const category = payload.category || "women's fashion item";
   const market = payload.market || "US";
+  const platform = payload.platform || "TikTok Shop";
   return {
     mode: "demo",
-    summary: "已生成一版可用于客户沟通、图片生成和上架准备的设计方案。",
-    conceptName: "Soft Utility Resort Capsule",
+    summary: `已为 ${market} 市场生成一版样衣到上架素材包，可用于客户确认、图片生成和内容测试。`,
+    conceptName: "Sample-to-Sell Launch Pack",
     positioning: [
-      `面向 ${market} 市场的轻商业款式，适合快速打样和平台测试。`,
-      "视觉重点放在上身效果、面料垂感、花型清晰度和可批量延展性。",
-      "先用 3 个方向做客户选择，再确定版型、色组和图案密度。"
+      `${category} 先定位为轻商业测试款，重点验证主图点击、上身效果和短视频前 3 秒吸引力。`,
+      `平台优先级建议：${platform} 先做快速内容测试，再把表现好的图片和卖点复用到其他渠道。`,
+      "当前阶段先让客户确认款式方向、图片风格、英文卖点和补充资料。"
     ],
     designDirections: [
       {
-        name: "Clean Everyday Fit",
-        details: `${category} 保持简洁轮廓，突出舒适、百搭、易搭配，适合作为主推基础款。`,
-        risk: "需要补充尺码表和面料克重，避免后续客户对版型预期不一致。"
+        name: "Clean Marketplace Hero",
+        details: "主图保持干净、真实、易判断版型。模特正面自然站姿，商品轮廓清晰，背景减少干扰。",
+        risk: "需要补充样衣正反面图和细节图，避免生成图改变领口、袖型、长度、颜色或印花位置。"
       },
       {
-        name: "Botanical Micro Print",
-        details: "采用小面积植物花型，适合连衣裙、上衣、家居服和度假系列延展。",
-        risk: "花型必须避开现有品牌图案和版权图库素材。"
+        name: "Lifestyle Conversion Scene",
+        details: "围绕通勤、度假或周末出行场景展示上身效果，让客户看到真实穿搭用途。",
+        risk: "不要加入未经授权品牌、地标、明星脸或虚假折扣文字。"
       },
       {
-        name: "Marketplace Hero Image",
-        details: "主图用干净模特图，详情页补充面料、版型、场景和细节卖点。",
-        risk: "生成图必须锁定样衣颜色、领口、袖型、长度和印花位置。"
+        name: "TikTok Hook Test",
+        details: "短视频先测 3 个角度：显瘦/舒适、场景穿搭、细节近拍。每条 15-30 秒。",
+        risk: "不要承诺 100% 显瘦、永久不皱、不起球等无法验证的效果。"
       }
     ],
     imagePrompts: [
       {
         usage: "main image",
         ratio: "4:5",
-        prompt: `Professional ecommerce model photo for ${category}, natural daylight studio, clean background, realistic fabric texture, accurate garment structure, relaxed confident pose, high detail, marketplace-ready composition`,
-        negative: "do not change garment color, no extra logo, no brand text, no distorted hands, no wrong buttons, no messy seams"
+        prompt: `Professional ecommerce model photo for ${category}, natural daylight studio, clean neutral background, accurate garment color and silhouette, realistic fabric texture, full outfit visible, marketplace-ready composition`,
+        negative: "do not change garment color, no extra logo, no brand text, no distorted hands, no wrong neckline, no incorrect sleeve shape"
       },
       {
-        usage: "social ad",
+        usage: "lifestyle image",
+        ratio: "4:5",
+        prompt: `Lifestyle fashion photo for ${category}, bright street or vacation setting, natural movement, clear garment fit, authentic overseas ecommerce look, soft daylight`,
+        negative: "no luxury brand reference, no celebrity face, no fake review text, no unreadable typography"
+      },
+      {
+        usage: "TikTok cover",
         ratio: "9:16",
-        prompt: `TikTok-style lifestyle product shot for ${category}, casual movement, real street or bright home setting, clear full outfit, natural expression, commercial fashion photography`,
-        negative: "no luxury brand reference, no celebrity face, no fake discount text, no unreadable typography"
+        prompt: `Vertical TikTok cover image for ${category}, model mid-motion, clear front view, strong outfit silhouette, space for short English headline`,
+        negative: "no wrong text, no watermark, no logo, no extra accessories that hide the product"
       }
     ],
-    vectorPrompt: "Create a clean seamless botanical vector repeat, editable flat colors, organized layers, no brand marks, suitable for textile digital printing and colorway expansion.",
+    vectorPrompt: "Create a clean editable textile vector artwork based on the product print direction, organized layers, flat colors, seamless repeat option, no brand marks, suitable for digital printing and colorway expansion.",
     listingCopy: {
-      title: "Women Casual Printed Top, Soft Everyday Blouse for Work, Travel and Weekend Outfits",
+      title: "Women Printed Midi Dress, Lightweight Casual Vacation Dress for Spring Summer Outfits",
       bullets: [
-        "Soft, easy-to-style look designed for everyday wear and travel packing.",
-        "Clean fit pairs well with jeans, skirts, trousers, and layered outfits.",
-        "Print direction adds visual interest without feeling too loud for daily use.",
-        "Great for casual office days, weekend plans, vacation styling, and gifting.",
-        "Check the size chart before ordering for the best fit."
+        "Easy everyday style designed for travel, brunch, weekend plans, and warm-weather outfits.",
+        "Lightweight woven handfeel creates a soft, comfortable look without feeling too formal.",
+        "Clean silhouette pairs well with sandals, sneakers, light jackets, and simple accessories.",
+        "Small print direction adds visual interest while staying wearable for daily styling.",
+        "Please check the size chart before ordering; manual measurement may vary slightly."
       ],
       keywords: [
-        "women printed top",
-        "casual blouse",
-        "everyday shirt",
-        "soft blouse",
-        "travel outfit",
-        "work blouse",
-        "weekend top",
-        "botanical print",
-        "summer blouse",
-        "lightweight top",
-        "women fashion",
-        "resort wear",
-        "vacation top",
-        "office casual",
-        "comfortable shirt",
-        "loose fit top",
-        "gift for women",
-        "stylish blouse",
-        "day to night outfit",
-        "layering top",
-        "printed blouse",
-        "spring outfit",
-        "fall outfit",
-        "basic fashion top",
-        "boutique style",
-        "ecommerce fashion",
-        "model photo prompt",
-        "textile print",
-        "vector pattern",
-        "product image"
+        "women midi dress", "printed dress", "summer dress", "vacation dress", "casual dress",
+        "floral dress", "spring outfit", "resort wear", "travel outfit", "weekend dress",
+        "boutique dress", "lightweight dress", "women fashion", "TikTok outfit", "ecommerce fashion",
+        "model photo", "lifestyle image", "product photo", "fashion listing", "women clothing",
+        "daily wear", "soft dress", "comfortable dress", "gift for women", "work casual",
+        "holiday outfit", "street style", "fashion content", "main image", "detail image"
       ]
     },
-    nextInputsNeeded: ["样衣正反面照片", "面料成分和克重", "目标平台", "成本区间", "尺码表", "颜色和库存计划"]
+    tiktokScripts: [
+      {
+        hook: "This is the dress I pack when I do not want to overthink an outfit.",
+        shots: ["0-3s front mirror movement", "4-10s close-up fabric and print", "11-20s walking shot", "21-28s styling with bag and sandals"],
+        voiceover: "Light, easy, and ready in one piece. This dress works for brunch, travel, and warm weekend plans.",
+        caption: "Easy vacation outfit, no overthinking."
+      },
+      {
+        hook: "One dress, three simple ways to wear it.",
+        shots: ["show base dress", "add light cardigan", "switch to sneakers", "detail close-up"],
+        voiceover: "Keep it casual with sneakers, dress it up with sandals, or layer it for cooler evenings.",
+        caption: "3 ways to style one printed dress."
+      },
+      {
+        hook: "The print is subtle, but it makes the whole outfit feel finished.",
+        shots: ["print close-up", "waist and neckline detail", "full-body pose", "final product hero shot"],
+        voiceover: "A soft print gives the look personality without feeling too loud for everyday wear.",
+        caption: "Small print, easy outfit."
+      }
+    ],
+    nextInputsNeeded: ["样衣正面、背面、侧面和细节照片", "面料成分、克重、弹力和是否透光", "尺码表和模特身高体重参考", "目标售价、成本区间和主要竞品", "客户最想先测试的平台和预算"]
   };
 }
-
 function extractText(response) {
   if (response.output_text) return response.output_text;
   const parts = [];
@@ -368,3 +375,4 @@ const server = http.createServer((req, res) => {
 server.listen(port, () => {
   console.log(`Design Studio AI running at http://localhost:${port}`);
 });
+
