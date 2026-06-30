@@ -126,3 +126,7 @@ https://design-studio-ai.onrender.com
 
 这个域名就是给客户看的正式地址（不会因你关闭本地终端而失效）。  
 客户访问后如果仍是本机端口内容，记得清理浏览器缓存或刷新页面。
+
+正式上线请直接用：
+
+- [DEPLOY_TO_RENDER.md](DEPLOY_TO_RENDER.md)
