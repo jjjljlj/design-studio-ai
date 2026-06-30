@@ -21,6 +21,7 @@ const moduleTitle = document.querySelector("#moduleTitle");
 const toast = document.querySelector("#toast");
 const assetInput = document.querySelector("#assetInput");
 const assetPreview = document.querySelector("#assetPreview");
+const apiStatus = document.querySelector("#apiStatus");
 
 function showToast(message) {
   toast.textContent = message;
@@ -39,6 +40,23 @@ function setModule(module) {
 document.querySelectorAll("[data-module]").forEach((button) => {
   button.addEventListener("click", () => setModule(button.dataset.module));
 });
+
+async function loadRuntimeStatus() {
+  if (window.location.protocol === "file:") {
+    apiStatus.textContent = "本地预览";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/status");
+    const status = await response.json();
+    apiStatus.textContent = `${status.textProvider} / ${status.imageProvider}`;
+  } catch {
+    apiStatus.textContent = "待检测";
+  }
+}
+
+loadRuntimeStatus();
 
 document.querySelector("#fillDemo").addEventListener("click", () => {
   form.customer.value = "US boutique womenswear buyer";
@@ -356,7 +374,7 @@ form.addEventListener("submit", async (event) => {
   try {
     const data = await requestDesign(formPayload());
     renderResult(data);
-    document.querySelector("#apiStatus").textContent = data.mode === "demo" ? "演示输出" : "已连接模型";
+    apiStatus.textContent = data.mode === "demo" ? "演示输出" : `已连接 ${data.provider || "模型"}`;
     showToast("素材包方案已生成");
   } catch (error) {
     showToast(error.message);

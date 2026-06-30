@@ -122,6 +122,7 @@ function mockDesign(payload) {
   const platform = payload.platform || "TikTok Shop";
   return {
     mode: "demo",
+    provider: "demo",
     summary: `已为 ${market} 市场生成一版样衣到上架素材包，可用于客户确认、图片生成和内容测试。`,
     conceptName: "Sample-to-Sell Launch Pack",
     positioning: [
@@ -219,7 +220,104 @@ function extractText(response) {
   return parts.join("\n");
 }
 
+function parseJsonObject(text) {
+  const cleaned = String(text || "")
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```$/i, "")
+    .trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const start = cleaned.indexOf("{");
+    const end = cleaned.lastIndexOf("}");
+    if (start !== -1 && end !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    }
+    throw new Error("Model did not return valid JSON.");
+  }
+}
+
+function chooseTextProvider() {
+  const requested = (process.env.TEXT_PROVIDER || "auto").toLowerCase();
+  if (requested !== "auto") return requested;
+  if (process.env.DEEPSEEK_API_KEY) return "deepseek";
+  if (process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY) return "qwen";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  return "demo";
+}
+
+function chooseImageProvider() {
+  const requested = (process.env.IMAGE_PROVIDER || "auto").toLowerCase();
+  if (requested !== "auto") return requested;
+  if (process.env.OPENAI_API_KEY) return "openai";
+  if (process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY) return "qwen";
+  return "demo";
+}
+
+async function callOpenAICompatibleChat({ baseUrl, apiKey, model, prompt, provider }) {
+  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.4
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`${provider} Chat API error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content || "";
+  return parseJsonObject(text);
+}
+
 async function callResponses(payload) {
+  const provider = chooseTextProvider();
+  const prompt = buildDesignPrompt(payload);
+
+  if (provider === "demo") return mockDesign(payload);
+
+  if (provider === "deepseek") {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) return mockDesign(payload);
+    const result = await callOpenAICompatibleChat({
+      baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
+      apiKey,
+      model: process.env.DEEPSEEK_TEXT_MODEL || "deepseek-chat",
+      prompt,
+      provider: "DeepSeek"
+    });
+    return { ...result, mode: "live", provider: "deepseek" };
+  }
+
+  if (provider === "qwen") {
+    const apiKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) return mockDesign(payload);
+    const result = await callOpenAICompatibleChat({
+      baseUrl: process.env.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      apiKey,
+      model: process.env.QWEN_TEXT_MODEL || "qwen-plus",
+      prompt,
+      provider: "Qwen"
+    });
+    return { ...result, mode: "live", provider: "qwen" };
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return mockDesign(payload);
 
@@ -231,7 +329,7 @@ async function callResponses(payload) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_TEXT_MODEL || "gpt-5.5",
-      input: buildDesignPrompt(payload),
+      input: prompt,
       text: {
         format: { type: "json_object" }
       }
@@ -245,14 +343,31 @@ async function callResponses(payload) {
 
   const data = await response.json();
   const text = extractText(data);
-  return JSON.parse(text);
+  return { ...parseJsonObject(text), mode: "live", provider: "openai" };
 }
 
 async function callImageGeneration(payload) {
+  const provider = chooseImageProvider();
+
+  if (provider === "demo") {
+    return {
+      mode: "demo",
+      provider: "demo",
+      image: null,
+      prompt: payload.prompt,
+      note: "未配置图片模型 API Key，当前显示提示词，不消耗额度。"
+    };
+  }
+
+  if (provider === "qwen") {
+    return callQwenImageGeneration(payload);
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return {
       mode: "demo",
+      provider: "demo",
       image: null,
       prompt: payload.prompt,
       note: "未配置 OPENAI_API_KEY，当前显示提示词，不消耗额度。"
@@ -281,8 +396,97 @@ async function callImageGeneration(payload) {
   const data = await response.json();
   return {
     mode: "live",
+    provider: "openai",
     image: `data:image/png;base64,${data.data?.[0]?.b64_json || ""}`,
     prompt: payload.prompt
+  };
+}
+
+async function callQwenImageGeneration(payload) {
+  const apiKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+  if (!apiKey) {
+    return {
+      mode: "demo",
+      provider: "demo",
+      image: null,
+      prompt: payload.prompt,
+      note: "未配置 QWEN_API_KEY / DASHSCOPE_API_KEY，当前显示提示词，不消耗额度。"
+    };
+  }
+
+  const response = await fetch("https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "X-DashScope-Async": "enable"
+    },
+    body: JSON.stringify({
+      model: process.env.QWEN_IMAGE_MODEL || "wanx2.1-t2i-turbo",
+      input: {
+        prompt: payload.prompt,
+        negative_prompt: payload.negative || "low quality, blurry, distorted garment, wrong color, extra logo"
+      },
+      parameters: {
+        size: process.env.QWEN_IMAGE_SIZE || "1024*1536",
+        n: 1
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Qwen Image API error ${response.status}: ${errorText}`);
+  }
+
+  const taskData = await response.json();
+  const taskId = taskData.output?.task_id;
+  if (!taskId) throw new Error(`Qwen Image API did not return task_id: ${JSON.stringify(taskData)}`);
+
+  for (let i = 0; i < 30; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const poll = await fetch(`https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`, {
+      headers: { "Authorization": `Bearer ${apiKey}` }
+    });
+    const statusData = await poll.json();
+    const status = statusData.output?.task_status;
+    if (status === "SUCCEEDED") {
+      const imageUrl = statusData.output?.results?.[0]?.url;
+      return {
+        mode: "live",
+        provider: "qwen",
+        imageUrl,
+        image: imageUrl || null,
+        prompt: payload.prompt,
+        taskId
+      };
+    }
+    if (status === "FAILED" || status === "CANCELED") {
+      throw new Error(`Qwen Image task ${status}: ${JSON.stringify(statusData)}`);
+    }
+  }
+
+  throw new Error("Qwen Image task timed out.");
+}
+
+function getRuntimeStatus() {
+  return {
+    textProvider: chooseTextProvider(),
+    imageProvider: chooseImageProvider(),
+    textModels: {
+      openai: process.env.OPENAI_TEXT_MODEL || "gpt-5.5",
+      deepseek: process.env.DEEPSEEK_TEXT_MODEL || "deepseek-chat",
+      qwen: process.env.QWEN_TEXT_MODEL || "qwen-plus"
+    },
+    imageModels: {
+      openai: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
+      qwen: process.env.QWEN_IMAGE_MODEL || "wanx2.1-t2i-turbo"
+    },
+    configured: {
+      openai: Boolean(process.env.OPENAI_API_KEY),
+      deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
+      qwen: Boolean(process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY)
+    }
   };
 }
 
@@ -317,6 +521,11 @@ async function saveFeedback(payload) {
 
 async function handleApi(req, res) {
   try {
+    if (req.url === "/api/status") {
+      sendJson(res, 200, getRuntimeStatus());
+      return;
+    }
+
     const body = await readJson(req);
     if (req.url === "/api/generate/design") {
       const result = await callResponses(body);

@@ -10,7 +10,23 @@ services:
         value: production
       - key: PORT
         value: 5173
+      - key: TEXT_PROVIDER
+        value: auto
+      - key: IMAGE_PROVIDER
+        value: auto
       - key: OPENAI_TEXT_MODEL
         value: gpt-5.5
       - key: OPENAI_IMAGE_MODEL
         value: gpt-image-2
+      - key: DEEPSEEK_TEXT_MODEL
+        value: deepseek-chat
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: QWEN_TEXT_MODEL
+        value: qwen-plus
+      - key: QWEN_BASE_URL
+        value: https://dashscope.aliyuncs.com/compatible-mode/v1
+      - key: QWEN_IMAGE_MODEL
+        value: wanx2.1-t2i-turbo
+      - key: QWEN_IMAGE_SIZE
+        value: 1024*1536
