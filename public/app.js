@@ -22,11 +22,65 @@ const toast = document.querySelector("#toast");
 const assetInput = document.querySelector("#assetInput");
 const assetPreview = document.querySelector("#assetPreview");
 const apiStatus = document.querySelector("#apiStatus");
+const textProviderLabel = document.querySelector("#textProviderLabel");
+const imageProviderLabel = document.querySelector("#imageProviderLabel");
+const textModelName = document.querySelector("#textModelName");
+const imageModelName = document.querySelector("#imageModelName");
+const keyStatusLabel = document.querySelector("#keyStatusLabel");
+const modelAdvice = document.querySelector("#modelAdvice");
+const refreshStatus = document.querySelector("#refreshStatus");
+
+const providerNames = {
+  openai: "OpenAI",
+  deepseek: "DeepSeek",
+  qwen: "千问/通义",
+  demo: "演示模式",
+  auto: "自动选择"
+};
 
 function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   window.setTimeout(() => toast.classList.remove("show"), 2600);
+}
+
+function providerName(provider) {
+  return providerNames[String(provider || "").toLowerCase()] || provider || "未配置";
+}
+
+function updateRuntimeView(status) {
+  const textProvider = providerName(status?.textProvider);
+  const imageProvider = providerName(status?.imageProvider);
+  const configured = status?.configured || {};
+  const textModels = status?.textModels || {};
+  const imageModels = status?.imageModels || {};
+
+  apiStatus.textContent = `${textProvider} / ${imageProvider}`;
+  if (textProviderLabel) textProviderLabel.textContent = textProvider;
+  if (imageProviderLabel) imageProviderLabel.textContent = imageProvider;
+  if (textModelName) {
+    const model = textModels[status?.textProvider] || textModels.openai || textModels.deepseek || "待配置";
+    textModelName.textContent = `当前文本模型：${model}`;
+  }
+  if (imageModelName) {
+    const model = imageModels[status?.imageProvider] || imageModels.openai || imageModels.qwen || "待配置";
+    imageModelName.textContent = `当前图片模型：${model}`;
+  }
+  if (keyStatusLabel) {
+    const keyParts = [
+      `OpenAI ${configured.openai ? "已配置" : "待配置"}`,
+      `DeepSeek ${configured.deepseek ? "已配置" : "待配置"}`,
+      `千问 ${configured.qwen ? "已配置" : "待接入"}`
+    ];
+    keyStatusLabel.textContent = keyParts.join(" / ");
+  }
+  if (modelAdvice) {
+    modelAdvice.textContent = configured.deepseek
+      ? "文案走 DeepSeek"
+      : configured.openai
+        ? "文案走 OpenAI"
+        : "当前为演示模式";
+  }
 }
 
 function setModule(module) {
@@ -43,20 +97,32 @@ document.querySelectorAll("[data-module]").forEach((button) => {
 
 async function loadRuntimeStatus() {
   if (window.location.protocol === "file:") {
-    apiStatus.textContent = "本地预览";
+    updateRuntimeView({
+      textProvider: "demo",
+      imageProvider: "demo",
+      textModels: {},
+      imageModels: {},
+      configured: {}
+    });
     return;
   }
 
   try {
     const response = await fetch("/api/status");
+    if (!response.ok) throw new Error("status request failed");
     const status = await response.json();
-    apiStatus.textContent = `${status.textProvider} / ${status.imageProvider}`;
+    updateRuntimeView(status);
   } catch {
     apiStatus.textContent = "待检测";
   }
 }
 
 loadRuntimeStatus();
+
+refreshStatus?.addEventListener("click", async () => {
+  await loadRuntimeStatus();
+  showToast("模型状态已刷新");
+});
 
 document.querySelector("#fillDemo").addEventListener("click", () => {
   form.customer.value = "US boutique womenswear buyer";
@@ -112,6 +178,7 @@ function mockDesign(payload) {
 
   return {
     mode: "demo",
+    provider: "demo",
     summary: `已为 ${market} 市场生成一版“样衣到上架素材”的执行方案，可用于客户确认、图片生成和上架准备。`,
     conceptName: "Sample-to-Sell Launch Pack",
     positioning: [
@@ -277,6 +344,11 @@ function renderScripts(scripts = []) {
 
 function renderResult(data) {
   latestResult = data;
+  const metaItems = [
+    data.mode ? `运行模式：${data.mode === "live" ? "正式模型" : "演示输出"}` : "",
+    data.provider ? `文本模型：${providerName(data.provider)}` : "",
+    data.generatedAt ? `生成时间：${data.generatedAt}` : ""
+  ].filter(Boolean);
 
   const directions = (data.designDirections || [])
     .map(
@@ -305,6 +377,7 @@ function renderResult(data) {
     <div class="result-content">
       <div class="result-block concept-card">
         <span class="card-index">AI</span>
+        ${metaItems.length ? `<div class="result-meta">${metaItems.map((item) => `<span>${escapeHtml(item)}</span>`).join("")}</div>` : ""}
         <h3>${escapeHtml(data.conceptName || "Sample-to-Sell Launch Pack")}</h3>
         <p>${escapeHtml(data.summary || "")}</p>
         ${list(data.positioning || [])}
@@ -374,7 +447,7 @@ form.addEventListener("submit", async (event) => {
   try {
     const data = await requestDesign(formPayload());
     renderResult(data);
-    apiStatus.textContent = data.mode === "demo" ? "演示输出" : `已连接 ${data.provider || "模型"}`;
+    apiStatus.textContent = data.mode === "demo" ? "演示输出" : `已连接 ${providerName(data.provider)}`;
     showToast("素材包方案已生成");
   } catch (error) {
     showToast(error.message);

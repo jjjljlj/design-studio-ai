@@ -529,7 +529,7 @@ async function handleApi(req, res) {
     const body = await readJson(req);
     if (req.url === "/api/generate/design") {
       const result = await callResponses(body);
-      sendJson(res, 200, result);
+      sendJson(res, 200, { ...result, generatedAt: result.generatedAt || new Date().toISOString() });
       return;
     }
     if (req.url === "/api/generate/image") {

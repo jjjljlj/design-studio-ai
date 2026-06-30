@@ -91,6 +91,39 @@
           </div>
         </section>
 
+        <section class="model-panel" aria-label="模型接入状态">
+          <div class="model-heading">
+            <div>
+              <p class="section-kicker">Model Routing</p>
+              <h2>当前模型接入</h2>
+            </div>
+            <button type="button" id="refreshStatus">刷新状态</button>
+          </div>
+
+          <div class="model-grid">
+            <article class="model-card">
+              <span>文本生成</span>
+              <strong id="textProviderLabel">检测中</strong>
+              <small id="textModelName">用于样衣分析、Listing、TK 脚本</small>
+            </article>
+            <article class="model-card">
+              <span>图片生成</span>
+              <strong id="imageProviderLabel">检测中</strong>
+              <small id="imageModelName">用于主图、模特图、场景图预览</small>
+            </article>
+            <article class="model-card">
+              <span>API Key</span>
+              <strong id="keyStatusLabel">检测中</strong>
+              <small>只显示是否已配置，不显示密钥内容</small>
+            </article>
+            <article class="model-card">
+              <span>测试建议</span>
+              <strong id="modelAdvice">先跑 DeepSeek 文案</strong>
+              <small>后续可继续接入千问/通义生图做成本对比</small>
+            </article>
+          </div>
+        </section>
+
         <section class="work-grid">
           <form class="intake-panel" id="briefForm">
             <div class="section-heading">
@@ -247,6 +280,7 @@
                   <li>产品图生成提示词</li>
                   <li>英文标题与五点</li>
                   <li>TK 15-30 秒脚本</li>
+                  <li>模型与交付状态</li>
                   <li>客户确认问题</li>
                 </ul>
                 <div class="swatches">

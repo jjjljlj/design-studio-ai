@@ -1,6 +1,45 @@
 const feedbackForm = document.querySelector("#feedbackForm");
 const feedbackStatus = document.querySelector("#feedbackStatus");
+const customerRuntimeStatus = document.querySelector("#customerRuntimeStatus");
+const customerRuntimeNote = document.querySelector("#customerRuntimeNote");
 const localStorageKey = "design-studio-feedback-local";
+
+const providerNames = {
+  openai: "OpenAI",
+  deepseek: "DeepSeek",
+  qwen: "千问/通义",
+  demo: "演示模式"
+};
+
+function providerName(provider) {
+  return providerNames[String(provider || "").toLowerCase()] || provider || "未配置";
+}
+
+async function loadCustomerRuntimeStatus() {
+  if (!customerRuntimeStatus || !customerRuntimeNote) return;
+
+  if (location.protocol === "file:") {
+    customerRuntimeStatus.textContent = "本地预览模式";
+    customerRuntimeNote.textContent = "部署到线上后会自动显示正式模型状态。";
+    return;
+  }
+
+  try {
+    const response = await fetch("/api/status");
+    if (!response.ok) throw new Error("status request failed");
+    const status = await response.json();
+    customerRuntimeStatus.textContent = `已上线：文本 ${providerName(status.textProvider)} / 图片 ${providerName(status.imageProvider)}`;
+    const configured = status.configured || {};
+    customerRuntimeNote.textContent = [
+      configured.deepseek ? "DeepSeek 文案生成已接入" : "DeepSeek 待接入",
+      configured.openai ? "OpenAI 图片生成已接入" : "OpenAI 待接入",
+      configured.qwen ? "千问已接入" : "千问可作为下一步成本测试"
+    ].join(" · ");
+  } catch {
+    customerRuntimeStatus.textContent = "状态检测中";
+    customerRuntimeNote.textContent = "如果页面能正常生成内容，说明线上服务正在运行。";
+  }
+}
 
 function setFeedbackStatus(message, isError = false) {
   if (!feedbackStatus) return;
@@ -50,6 +89,8 @@ async function submitFeedback(payload) {
     };
   }
 }
+
+loadCustomerRuntimeStatus();
 
 feedbackForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
