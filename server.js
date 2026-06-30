@@ -1,5 +1,5 @@
 ﻿import http from "node:http";
-import { appendFile, mkdir, readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -8,6 +8,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
 const dataDir = join(__dirname, "data");
 const feedbackFile = join(dataDir, "feedback.jsonl");
+const projectsDir = join(dataDir, "projects");
 
 async function loadLocalEnv() {
   try {
@@ -495,6 +496,96 @@ function sanitizeText(value, fallback = "") {
   return text ? text.slice(0, 1200) : fallback;
 }
 
+function sanitizeProjectId(id) {
+  const safeId = String(id || "").trim();
+  if (!/^[a-z0-9-]{20,80}$/i.test(safeId)) throw new Error("Invalid project id.");
+  return safeId;
+}
+
+function trimJsonValue(value, depth = 0) {
+  if (depth > 8) return null;
+  if (typeof value === "string") return value.slice(0, 8000);
+  if (typeof value === "number" || typeof value === "boolean" || value === null) return value;
+  if (Array.isArray(value)) return value.slice(0, 80).map((item) => trimJsonValue(item, depth + 1));
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 80)
+        .map(([key, item]) => [String(key).slice(0, 80), trimJsonValue(item, depth + 1)])
+    );
+  }
+  return null;
+}
+
+function projectPath(id) {
+  return join(projectsDir, `${sanitizeProjectId(id)}.json`);
+}
+
+function publicOrigin(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const proto = forwardedProto || (String(req.headers.host || "").includes("onrender.com") ? "https" : "http");
+  return `${proto}://${req.headers.host}`;
+}
+
+function publicProjectPayload(project) {
+  return {
+    id: project.id,
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+    status: project.status,
+    brief: project.brief,
+    result: project.result,
+    assetNames: project.assetNames || [],
+    confirmations: project.confirmations || []
+  };
+}
+
+async function saveProject(payload, req) {
+  await mkdir(projectsDir, { recursive: true });
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const project = {
+    id,
+    createdAt: now,
+    updatedAt: now,
+    status: "waiting_confirmation",
+    brief: trimJsonValue(payload.brief || {}),
+    result: trimJsonValue(payload.result || {}),
+    assetNames: trimJsonValue(payload.assetNames || []),
+    confirmations: []
+  };
+  await writeFile(projectPath(id), JSON.stringify(project, null, 2), "utf8");
+  return {
+    ...publicProjectPayload(project),
+    confirmationUrl: `${publicOrigin(req)}/confirm.html?id=${id}`
+  };
+}
+
+async function loadProject(id) {
+  const content = await readFile(projectPath(id), "utf8");
+  return JSON.parse(content);
+}
+
+async function saveProjectConfirmation(id, payload) {
+  const project = await loadProject(id);
+  const now = new Date().toISOString();
+  const confirmation = {
+    id: randomUUID(),
+    createdAt: now,
+    decision: sanitizeText(payload.decision, "需要修改"),
+    selectedDirection: sanitizeText(payload.selectedDirection),
+    customerName: sanitizeText(payload.customerName),
+    company: sanitizeText(payload.company),
+    contact: sanitizeText(payload.contact),
+    notes: sanitizeText(payload.notes)
+  };
+  project.confirmations = [...(project.confirmations || []), confirmation];
+  project.status = confirmation.decision === "整体通过" ? "approved" : "feedback_received";
+  project.updatedAt = now;
+  await writeFile(projectPath(project.id), JSON.stringify(project, null, 2), "utf8");
+  return { ok: true, projectId: project.id, confirmationId: confirmation.id, createdAt: now };
+}
+
 async function saveFeedback(payload) {
   await mkdir(dataDir, { recursive: true });
   const record = {
@@ -521,25 +612,46 @@ async function saveFeedback(payload) {
 
 async function handleApi(req, res) {
   try {
-    if (req.url === "/api/status") {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const pathname = url.pathname;
+
+    if (pathname === "/api/status") {
       sendJson(res, 200, getRuntimeStatus());
       return;
     }
 
+    const projectMatch = pathname.match(/^\/api\/projects\/([^/]+)$/);
+    if (req.method === "GET" && projectMatch) {
+      const project = await loadProject(projectMatch[1]);
+      sendJson(res, 200, publicProjectPayload(project));
+      return;
+    }
+
     const body = await readJson(req);
-    if (req.url === "/api/generate/design") {
+    if (pathname === "/api/generate/design") {
       const result = await callResponses(body);
       sendJson(res, 200, { ...result, generatedAt: result.generatedAt || new Date().toISOString() });
       return;
     }
-    if (req.url === "/api/generate/image") {
+    if (pathname === "/api/generate/image") {
       const result = await callImageGeneration(body);
       sendJson(res, 200, result);
       return;
     }
-    if (req.url === "/api/feedback") {
+    if (pathname === "/api/feedback") {
       const feedback = await saveFeedback(body);
       sendJson(res, 200, { ok: true, id: feedback.id, createdAt: feedback.createdAt });
+      return;
+    }
+    if (req.method === "POST" && pathname === "/api/projects") {
+      const project = await saveProject(body, req);
+      sendJson(res, 200, project);
+      return;
+    }
+    const confirmationMatch = pathname.match(/^\/api\/projects\/([^/]+)\/confirm$/);
+    if (req.method === "POST" && confirmationMatch) {
+      const confirmation = await saveProjectConfirmation(confirmationMatch[1], body);
+      sendJson(res, 200, confirmation);
       return;
     }
     sendJson(res, 404, { error: "API route not found" });

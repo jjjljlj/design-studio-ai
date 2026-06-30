@@ -14,6 +14,8 @@ const moduleDeliverables = {
 
 let activeModule = "sample";
 let latestResult = null;
+let latestBrief = null;
+let latestProjectLink = null;
 
 const form = document.querySelector("#briefForm");
 const resultMain = document.querySelector("#resultMain");
@@ -29,6 +31,7 @@ const imageModelName = document.querySelector("#imageModelName");
 const keyStatusLabel = document.querySelector("#keyStatusLabel");
 const modelAdvice = document.querySelector("#modelAdvice");
 const refreshStatus = document.querySelector("#refreshStatus");
+const saveProjectButton = document.querySelector("#saveProject");
 
 const providerNames = {
   openai: "OpenAI",
@@ -344,6 +347,7 @@ function renderScripts(scripts = []) {
 
 function renderResult(data) {
   latestResult = data;
+  latestProjectLink = null;
   const metaItems = [
     data.mode ? `运行模式：${data.mode === "live" ? "正式模型" : "演示输出"}` : "",
     data.provider ? `文本模型：${providerName(data.provider)}` : "",
@@ -418,6 +422,26 @@ function renderResult(data) {
   `;
 }
 
+function renderProjectShare(project) {
+  latestProjectLink = project.confirmationUrl;
+  const existing = resultMain.querySelector(".project-share");
+  existing?.remove();
+  resultMain.insertAdjacentHTML(
+    "afterbegin",
+    `<div class="project-share">
+      <div>
+        <p class="section-kicker">Client Confirmation</p>
+        <h3>客户确认链接已生成</h3>
+        <p>把这个链接发给客户，客户可以查看方案、选择方向并填写修改意见。</p>
+      </div>
+      <div class="share-link-row">
+        <input value="${escapeHtml(project.confirmationUrl)}" readonly />
+        <a href="${escapeHtml(project.confirmationUrl)}" target="_blank" rel="noreferrer">打开</a>
+      </div>
+    </div>`
+  );
+}
+
 async function requestDesign(payload) {
   if (window.location.protocol === "file:") {
     return mockDesign(payload);
@@ -443,9 +467,10 @@ form.addEventListener("submit", async (event) => {
   const submit = form.querySelector(".primary-action");
   submit.disabled = true;
   submit.querySelector("span").textContent = "生成中...";
+  latestBrief = formPayload();
 
   try {
-    const data = await requestDesign(formPayload());
+    const data = await requestDesign(latestBrief);
     renderResult(data);
     apiStatus.textContent = data.mode === "demo" ? "演示输出" : `已连接 ${providerName(data.provider)}`;
     showToast("素材包方案已生成");
@@ -454,6 +479,48 @@ form.addEventListener("submit", async (event) => {
   } finally {
     submit.disabled = false;
     submit.querySelector("span").textContent = "生成素材包方案";
+  }
+});
+
+saveProjectButton?.addEventListener("click", async () => {
+  if (!latestResult) {
+    showToast("请先生成素材包方案");
+    return;
+  }
+
+  if (window.location.protocol === "file:") {
+    showToast("请在本地服务或正式网址中保存项目链接");
+    return;
+  }
+
+  saveProjectButton.disabled = true;
+  saveProjectButton.textContent = "保存中...";
+
+  try {
+    const response = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        brief: latestBrief || formPayload(),
+        result: latestResult,
+        assetNames: [...assetInput.files].map((file) => file.name)
+      })
+    });
+    const project = await response.json();
+    if (!response.ok) throw new Error(project.error || "保存失败");
+
+    renderProjectShare(project);
+    try {
+      await navigator.clipboard.writeText(project.confirmationUrl);
+      showToast("客户确认链接已复制");
+    } catch {
+      showToast("客户确认链接已生成");
+    }
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    saveProjectButton.disabled = false;
+    saveProjectButton.textContent = "保存确认链接";
   }
 });
 

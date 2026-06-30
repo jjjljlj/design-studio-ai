@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI - 客户方案确认</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="confirm-page">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="customer-nav">
+      <div class="brand">
+        <div class="brand-mark">DS</div>
+        <div>
+          <strong>Design Studio AI</strong>
+          <span>客户方案确认</span>
+        </div>
+      </div>
+      <nav>
+        <a href="./">首页</a>
+        <a href="./index.html">工作台</a>
+      </nav>
+    </header>
+
+    <main class="confirm-main">
+      <section class="confirm-hero">
+        <div>
+          <p class="eyebrow">Client Confirmation</p>
+          <h1 id="confirmTitle">正在读取方案</h1>
+          <p id="confirmSummary">请稍等，系统正在打开客户确认链接。</p>
+        </div>
+        <div class="confirm-status-card">
+          <span>确认状态</span>
+          <strong id="confirmStatus">读取中</strong>
+          <small id="confirmUpdated">-</small>
+        </div>
+      </section>
+
+      <section class="confirm-content" id="projectContent">
+        <div class="empty-state">
+          <h3>正在加载项目</h3>
+          <p>如果长时间没有显示，请确认链接是否完整。</p>
+        </div>
+      </section>
+
+      <section class="confirm-feedback">
+        <div>
+          <p class="eyebrow">Feedback</p>
+          <h2>选择方向并填写修改意见</h2>
+          <p>你的选择会保存到项目记录中，便于后续整理产品图、上架文案和交付清单。</p>
+        </div>
+
+        <form id="confirmForm" class="confirm-form">
+          <div id="directionChoices" class="direction-choices"></div>
+
+          <div class="two-col">
+            <label>
+              确认结果
+              <select name="decision">
+                <option>需要修改</option>
+                <option>整体通过</option>
+                <option>先保留方向</option>
+                <option>暂不适合</option>
+              </select>
+            </label>
+            <label>
+              联系方式
+              <input name="contact" placeholder="微信 / 手机 / 邮箱" />
+            </label>
+          </div>
+
+          <div class="two-col">
+            <label>
+              姓名
+              <input name="customerName" placeholder="例如：王总 / Sarah" />
+            </label>
+            <label>
+              公司/品牌
+              <input name="company" placeholder="例如：XX Fashion" />
+            </label>
+          </div>
+
+          <label>
+            修改意见
+            <textarea name="notes" rows="5" placeholder="例如：喜欢方向 A，但模特场景希望更偏通勤；Listing 需要突出不透、舒适、尺码建议。"></textarea>
+          </label>
+
+          <div class="feedback-actions">
+            <button type="submit" class="primary-link">提交确认意见</button>
+            <span id="confirmMessage" aria-live="polite" class="feedback-status"></span>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script src="./confirm.js"></script>
+  </body>
+</html>
