@@ -61,6 +61,7 @@ function absoluteUrl(path) {
 function renderStats(summary) {
   const totals = summary.totals || {};
   const status = summary.status || {};
+  const storage = status.storage || {};
   adminStats.innerHTML = [
     ["项目总数", totals.projects || 0],
     ["待确认", totals.waiting || 0],
@@ -68,7 +69,8 @@ function renderStats(summary) {
     ["已通过", totals.approved || 0],
     ["试用线索", totals.leads || 0],
     ["素材库", totals.libraryConcepts || 0],
-    ["当前模型", `${status.textProvider || "-"} / ${status.imageProvider || "-"}`]
+    ["当前模型", `${status.textProvider || "-"} / ${status.imageProvider || "-"}`],
+    ["数据保存", storage.persistent ? "云数据库" : "临时文件"]
   ]
     .map(
       ([label, value]) => `

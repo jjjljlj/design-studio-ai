@@ -32,6 +32,7 @@ async function loadLocalEnv() {
 await loadLocalEnv();
 
 const port = Number(process.env.PORT || 5173);
+const supabaseTable = process.env.SUPABASE_TABLE || "design_records";
 
 const mimeTypes = {
   ".html": "text/html; charset=utf-8",
@@ -61,6 +62,97 @@ function sendJson(res, status, payload) {
     ...securityHeaders
   });
   res.end(JSON.stringify(payload));
+}
+
+function getStorageStatus() {
+  const supabaseConfigured = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return {
+    provider: supabaseConfigured ? "supabase" : "local-file",
+    persistent: supabaseConfigured,
+    table: supabaseConfigured ? supabaseTable : null
+  };
+}
+
+function getSupabaseConfig() {
+  const url = String(process.env.SUPABASE_URL || "").trim().replace(/\/$/, "");
+  const key = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
+  if (!url || !key) return null;
+  return { url, key, table: supabaseTable };
+}
+
+async function supabaseRequest(query = "", options = {}) {
+  const config = getSupabaseConfig();
+  if (!config) throw new Error("Supabase storage is not configured.");
+  const response = await fetch(`${config.url}/rest/v1/${config.table}${query}`, {
+    ...options,
+    headers: {
+      apikey: config.key,
+      Authorization: `Bearer ${config.key}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`Persistent storage error (${response.status}): ${text.slice(0, 240)}`);
+  }
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function persistentStorageEnabled() {
+  return Boolean(getSupabaseConfig());
+}
+
+function storageRecord(recordType, recordId, payload) {
+  const now = new Date().toISOString();
+  return {
+    record_type: recordType,
+    record_id: recordId,
+    created_at: payload.createdAt || now,
+    updated_at: payload.updatedAt || payload.createdAt || now,
+    payload
+  };
+}
+
+async function insertPersistentRecords(records) {
+  if (!persistentStorageEnabled() || !records.length) return false;
+  await supabaseRequest("", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(records)
+  });
+  return true;
+}
+
+async function upsertPersistentRecord(record) {
+  if (!persistentStorageEnabled()) return false;
+  await supabaseRequest("?on_conflict=record_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(record)
+  });
+  return true;
+}
+
+async function readPersistentPayload(recordType, recordId) {
+  if (!persistentStorageEnabled()) return null;
+  const rows = await supabaseRequest(
+    `?record_type=eq.${encodeURIComponent(recordType)}&record_id=eq.${encodeURIComponent(recordId)}&select=payload&limit=1`
+  );
+  return rows?.[0]?.payload || null;
+}
+
+async function listPersistentPayloads(recordType, limit = 80, orderField = "updated_at") {
+  if (!persistentStorageEnabled()) return null;
+  const rows = await supabaseRequest(
+    `?record_type=eq.${encodeURIComponent(recordType)}&select=payload&order=${orderField}.desc&limit=${Number(limit) || 80}`
+  );
+  return (rows || []).map((row) => row.payload).filter(Boolean);
 }
 
 async function readJson(req) {
@@ -711,7 +803,8 @@ function getRuntimeStatus() {
       openai: Boolean(process.env.OPENAI_API_KEY),
       deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
       qwen: Boolean(process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY)
-    }
+    },
+    storage: getStorageStatus()
   };
 }
 
@@ -798,7 +891,6 @@ function normalizeConcept(concept, batch, index) {
 }
 
 async function saveLibraryBatch(result, payload = {}) {
-  await mkdir(libraryDir, { recursive: true });
   const batch = {
     batchId: randomUUID(),
     createdAt: new Date().toISOString(),
@@ -810,7 +902,12 @@ async function saveLibraryBatch(result, payload = {}) {
   const concepts = Array.isArray(result.concepts) ? result.concepts : [];
   const records = concepts.map((concept, index) => normalizeConcept(concept, batch, index + 1));
   if (records.length) {
-    await appendFile(conceptLibraryFile, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf8");
+    const persistentRecords = records.map((record) => storageRecord("library_concept", record.id, record));
+    const savedToPersistentStorage = await insertPersistentRecords(persistentRecords);
+    if (!savedToPersistentStorage) {
+      await mkdir(libraryDir, { recursive: true });
+      await appendFile(conceptLibraryFile, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf8");
+    }
   }
   return {
     ...result,
@@ -822,6 +919,9 @@ async function saveLibraryBatch(result, payload = {}) {
 }
 
 async function listLibraryConcepts(limit = 120) {
+  const persistentRecords = await listPersistentPayloads("library_concept", limit, "created_at");
+  if (persistentRecords) return persistentRecords;
+
   try {
     const content = await readFile(conceptLibraryFile, "utf8");
     return content
@@ -848,7 +948,6 @@ async function generateEmployeeLibrary(payload) {
 }
 
 async function saveProject(payload, req) {
-  await mkdir(projectsDir, { recursive: true });
   const id = randomUUID();
   const now = new Date().toISOString();
   const project = {
@@ -861,7 +960,11 @@ async function saveProject(payload, req) {
     assetNames: trimJsonValue(payload.assetNames || []),
     confirmations: []
   };
-  await writeFile(projectPath(id), JSON.stringify(project, null, 2), "utf8");
+  const savedToPersistentStorage = await upsertPersistentRecord(storageRecord("project", id, project));
+  if (!savedToPersistentStorage) {
+    await mkdir(projectsDir, { recursive: true });
+    await writeFile(projectPath(id), JSON.stringify(project, null, 2), "utf8");
+  }
   return {
     ...publicProjectPayload(project),
     confirmationUrl: `${publicOrigin(req)}/confirm.html?id=${id}`
@@ -869,11 +972,28 @@ async function saveProject(payload, req) {
 }
 
 async function loadProject(id) {
+  const safeId = sanitizeProjectId(id);
+  const persistentProject = await readPersistentPayload("project", safeId);
+  if (persistentProject) return persistentProject;
+
   const content = await readFile(projectPath(id), "utf8");
   return JSON.parse(content);
 }
 
 async function listProjects(limit = 80) {
+  const persistentProjects = await listPersistentPayloads("project", limit, "updated_at");
+  if (persistentProjects) {
+    return persistentProjects.map((project) => {
+      const confirmations = project.confirmations || [];
+      return {
+        ...publicProjectPayload(project),
+        confirmationCount: confirmations.length,
+        latestConfirmation: confirmations.at(-1) || null,
+        confirmationUrl: `/confirm.html?id=${project.id}`
+      };
+    });
+  }
+
   try {
     const names = await readdir(projectsDir);
     const records = await Promise.all(
@@ -920,12 +1040,14 @@ async function saveProjectConfirmation(id, payload) {
   project.confirmations = [...(project.confirmations || []), confirmation];
   project.status = confirmation.decision === "整体通过" ? "approved" : "feedback_received";
   project.updatedAt = now;
-  await writeFile(projectPath(project.id), JSON.stringify(project, null, 2), "utf8");
+  const savedToPersistentStorage = await upsertPersistentRecord(storageRecord("project", project.id, project));
+  if (!savedToPersistentStorage) {
+    await writeFile(projectPath(project.id), JSON.stringify(project, null, 2), "utf8");
+  }
   return { ok: true, projectId: project.id, confirmationId: confirmation.id, createdAt: now };
 }
 
 async function saveFeedback(payload) {
-  await mkdir(dataDir, { recursive: true });
   const record = {
     id: randomUUID(),
     createdAt: new Date().toISOString(),
@@ -944,11 +1066,18 @@ async function saveFeedback(payload) {
     notes: sanitizeText(payload.notes),
     source: sanitizeText(payload.source, "customer-page")
   };
-  await appendFile(feedbackFile, `${JSON.stringify(record)}\n`, "utf8");
+  const savedToPersistentStorage = await insertPersistentRecords([storageRecord("feedback", record.id, record)]);
+  if (!savedToPersistentStorage) {
+    await mkdir(dataDir, { recursive: true });
+    await appendFile(feedbackFile, `${JSON.stringify(record)}\n`, "utf8");
+  }
   return record;
 }
 
 async function listFeedback(limit = 80) {
+  const persistentFeedback = await listPersistentPayloads("feedback", limit, "created_at");
+  if (persistentFeedback) return persistentFeedback;
+
   try {
     const content = await readFile(feedbackFile, "utf8");
     return content
