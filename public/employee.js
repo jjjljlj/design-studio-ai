@@ -67,6 +67,128 @@ function listMarkup(items = []) {
     </ul>`;
 }
 
+function uniqueValues(values = []) {
+  return [...new Set(values.map((item) => String(item || "").trim()).filter(Boolean))];
+}
+
+function listingKeywords(concept) {
+  return uniqueValues([
+    concept.category,
+    concept.patternName,
+    "satin sleepwear",
+    "silky pajama set",
+    "women's loungewear",
+    "bridal sleepwear",
+    "bridesmaid gift",
+    "vacation resort wear",
+    "lace trim pajamas",
+    "contrast piping pajamas",
+    "gift for her",
+    ...(concept.titleDirection || "").split(/[\s,/|-]+/).filter((word) => word.length > 3)
+  ]).slice(0, 30);
+}
+
+function listingPackage(concept) {
+  const title = concept.titleDirection || `${concept.name || "Women's Satin Sleepwear"} for Women`;
+  const bullets = uniqueValues([
+    ...normalizeList(concept.coreSellingPoints),
+    concept.fabricAndCraft ? `Soft fabric direction: ${concept.fabricAndCraft}` : "",
+    concept.patternDescription ? `Print/detail direction: ${concept.patternDescription}` : "",
+    concept.listingAngle || ""
+  ]).slice(0, 5);
+  const filledBullets = [
+    ...bullets,
+    "Designed for lounge, sleep, gifting, and vacation styling.",
+    "Easy to style for ecommerce main images, detail pages, and TikTok short videos."
+  ].slice(0, 5);
+  return {
+    title,
+    bullets: filledBullets,
+    keywords: listingKeywords(concept),
+    imageList: [
+      "Main image: full outfit on model, clean vertical ecommerce crop.",
+      "Lifestyle image: warm bedroom, French apartment, bridal morning, or resort scene.",
+      "Detail image: satin sheen, lace trim, piping, bow, print, hem, and strap details.",
+      "Flat lay image: complete set pieces with color/print clearly visible.",
+      "Size/care image: size chart, fabric composition, wash care, and fit notes."
+    ],
+    skuFields: [
+      "Style name / style code",
+      "Color or print name",
+      "Size range",
+      "Fabric composition",
+      "Set pieces included",
+      "Package weight and dimensions",
+      "Care instructions",
+      "Image rights status"
+    ],
+    missing: [
+      "Exact fabric composition and gram weight",
+      "Confirmed size chart and fit model measurements",
+      "Real sample photos or approved AI image rights",
+      "Cost, target price, shipping weight, and packaging details",
+      "Platform compliance review before publishing"
+    ]
+  };
+}
+
+function listingText(concept) {
+  const pack = listingPackage(concept);
+  return [
+    `Title: ${pack.title}`,
+    "",
+    "Five Bullet Points:",
+    ...pack.bullets.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    `Keywords: ${pack.keywords.join(", ")}`,
+    "",
+    "Image List:",
+    ...pack.imageList.map((item, index) => `${index + 1}. ${item}`),
+    "",
+    "SKU Fields:",
+    ...pack.skuFields.map((item) => `- ${item}`),
+    "",
+    "Missing Info Before Listing:",
+    ...pack.missing.map((item) => `- ${item}`)
+  ].join("\n");
+}
+
+function listingMarkup(concept) {
+  const pack = listingPackage(concept);
+  const text = listingText(concept);
+  return `
+    <div class="library-listing-package" data-listing-package hidden>
+      <div class="listing-package-head">
+        <strong>上架前审核资料包</strong>
+        <button type="button" class="copy-listing-package" data-package="${escapeHtml(text)}">复制资料包</button>
+      </div>
+      <div class="listing-section">
+        <span>English Title</span>
+        <p>${escapeHtml(pack.title)}</p>
+      </div>
+      <div class="listing-section">
+        <span>Five Bullet Points</span>
+        ${listMarkup(pack.bullets)}
+      </div>
+      <div class="listing-section">
+        <span>Search Keywords</span>
+        <p>${escapeHtml(pack.keywords.join(", "))}</p>
+      </div>
+      <div class="listing-section">
+        <span>Image Checklist</span>
+        ${listMarkup(pack.imageList)}
+      </div>
+      <div class="listing-section">
+        <span>SKU Fields</span>
+        ${listMarkup(pack.skuFields)}
+      </div>
+      <div class="listing-section missing">
+        <span>Missing Info</span>
+        ${listMarkup(pack.missing)}
+      </div>
+    </div>`;
+}
+
 function conceptCard(record) {
   const concept = record.concept || record;
   const cardId = escapeHtml(record.id || `${concept.name || "concept"}-${record.createdAt || Date.now()}`);
@@ -132,7 +254,9 @@ function conceptCard(record) {
               <button type="button" class="generate-concept-image" data-kind="${kind}" data-size="${size}" data-prompt="${escapeHtml(value)}">${label}</button>`
           )
           .join("")}
+        <button type="button" class="build-listing-package">生成上架资料包</button>
       </div>
+      ${listingMarkup(concept)}
       <div class="library-image-preview" data-image-output>
         <div>当前为款式/花型数据库记录。点击上方按钮后，这里会显示AI生成图片预览。</div>
       </div>
@@ -235,6 +359,27 @@ document.addEventListener("click", async (event) => {
     } catch {
       showToast("复制失败，请手动选择文字");
     }
+    return;
+  }
+
+  const packageCopyButton = event.target.closest(".copy-listing-package");
+  if (packageCopyButton) {
+    try {
+      await navigator.clipboard.writeText(packageCopyButton.dataset.package || "");
+      showToast("上架资料包已复制");
+    } catch {
+      showToast("复制失败，请手动选择文字");
+    }
+    return;
+  }
+
+  const listingButton = event.target.closest(".build-listing-package");
+  if (listingButton) {
+    const card = listingButton.closest(".library-card");
+    const packagePanel = card?.querySelector("[data-listing-package]");
+    if (!packagePanel) return;
+    packagePanel.hidden = !packagePanel.hidden;
+    listingButton.textContent = packagePanel.hidden ? "生成上架资料包" : "收起资料包";
     return;
   }
 
