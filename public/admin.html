@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI - 项目记录</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="admin-page">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="customer-nav">
+      <div class="brand">
+        <div class="brand-mark">DS</div>
+        <div>
+          <strong>Design Studio AI</strong>
+          <span>项目记录与客户反馈</span>
+        </div>
+      </div>
+      <nav>
+        <a href="./index.html">工作台</a>
+        <a href="./">客户首页</a>
+      </nav>
+    </header>
+
+    <main class="admin-main">
+      <section class="admin-hero">
+        <div>
+          <p class="eyebrow">Admin Center</p>
+          <h1>查看客户确认意见和试用线索</h1>
+          <p>这里汇总工作台保存的项目、客户确认链接反馈，以及首页提交的试用需求。</p>
+        </div>
+        <div class="admin-login" id="adminLogin">
+          <label>
+            管理密码
+            <input id="adminPin" type="password" placeholder="输入 ADMIN_PIN" />
+          </label>
+          <button type="button" class="primary-link" id="loadAdmin">进入管理页</button>
+          <p id="adminMessage" class="feedback-status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="admin-dashboard" id="adminDashboard" hidden>
+        <div class="admin-toolbar">
+          <div>
+            <p class="section-kicker">Overview</p>
+            <h2>业务概览</h2>
+          </div>
+          <button type="button" id="refreshAdmin">刷新</button>
+        </div>
+
+        <div class="admin-stats" id="adminStats"></div>
+
+        <div class="admin-columns">
+          <section class="admin-panel">
+            <div class="admin-panel-heading">
+              <h2>项目确认记录</h2>
+              <span id="projectCount">0</span>
+            </div>
+            <div id="projectList" class="record-list"></div>
+          </section>
+
+          <section class="admin-panel">
+            <div class="admin-panel-heading">
+              <h2>首页试用需求</h2>
+              <span id="feedbackCount">0</span>
+            </div>
+            <div id="feedbackList" class="record-list"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="./admin.js"></script>
+  </body>
+</html>

@@ -1,5 +1,5 @@
 ﻿import http from "node:http";
-import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -512,6 +512,24 @@ function sanitizeProjectId(id) {
   return safeId;
 }
 
+function getAdminPin(req, url) {
+  return String(req.headers["x-admin-pin"] || url.searchParams.get("pin") || "").trim();
+}
+
+function assertAdmin(req, url) {
+  const configuredPin = String(process.env.ADMIN_PIN || "").trim();
+  if (!configuredPin) {
+    const error = new Error("ADMIN_PIN is not configured.");
+    error.statusCode = 503;
+    throw error;
+  }
+  if (getAdminPin(req, url) !== configuredPin) {
+    const error = new Error("Invalid admin PIN.");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
 function trimJsonValue(value, depth = 0) {
   if (depth > 8) return null;
   if (typeof value === "string") return value.slice(0, 8000);
@@ -576,6 +594,37 @@ async function loadProject(id) {
   return JSON.parse(content);
 }
 
+async function listProjects(limit = 80) {
+  try {
+    const names = await readdir(projectsDir);
+    const records = await Promise.all(
+      names
+        .filter((name) => name.endsWith(".json"))
+        .slice(0, 300)
+        .map(async (name) => {
+          try {
+            const project = JSON.parse(await readFile(join(projectsDir, name), "utf8"));
+            const confirmations = project.confirmations || [];
+            return {
+              ...publicProjectPayload(project),
+              confirmationCount: confirmations.length,
+              latestConfirmation: confirmations.at(-1) || null,
+              confirmationUrl: `/confirm.html?id=${project.id}`
+            };
+          } catch {
+            return null;
+          }
+        })
+    );
+    return records
+      .filter(Boolean)
+      .sort((a, b) => String(b.updatedAt || b.createdAt).localeCompare(String(a.updatedAt || a.createdAt)))
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 async function saveProjectConfirmation(id, payload) {
   const project = await loadProject(id);
   const now = new Date().toISOString();
@@ -620,6 +669,47 @@ async function saveFeedback(payload) {
   return record;
 }
 
+async function listFeedback(limit = 80) {
+  try {
+    const content = await readFile(feedbackFile, "utf8");
+    return content
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+async function adminSummary(req, url) {
+  assertAdmin(req, url);
+  const projects = await listProjects();
+  const feedback = await listFeedback();
+  return {
+    ok: true,
+    generatedAt: new Date().toISOString(),
+    status: getRuntimeStatus(),
+    totals: {
+      projects: projects.length,
+      waiting: projects.filter((project) => project.status === "waiting_confirmation").length,
+      feedbackReceived: projects.filter((project) => project.status === "feedback_received").length,
+      approved: projects.filter((project) => project.status === "approved").length,
+      leads: feedback.length
+    },
+    projects,
+    feedback
+  };
+}
+
 async function handleApi(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -627,6 +717,11 @@ async function handleApi(req, res) {
 
     if (pathname === "/api/status") {
       sendJson(res, 200, getRuntimeStatus());
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/admin/summary") {
+      sendJson(res, 200, await adminSummary(req, url));
       return;
     }
 
@@ -666,7 +761,7 @@ async function handleApi(req, res) {
     }
     sendJson(res, 404, { error: "API route not found" });
   } catch (error) {
-    sendJson(res, 500, { error: error.message });
+    sendJson(res, error.statusCode || 500, { error: error.message });
   }
 }
 
