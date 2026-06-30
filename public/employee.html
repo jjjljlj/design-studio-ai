@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI - AI设计员工</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="employee-page">
+    <div class="ambient ambient-a"></div>
+    <div class="ambient ambient-b"></div>
+
+    <header class="customer-nav">
+      <div class="brand">
+        <div class="brand-mark">DS</div>
+        <div>
+          <strong>Design Studio AI</strong>
+          <span>AI款式与花型设计员工</span>
+        </div>
+      </div>
+      <nav>
+        <a href="./index.html">工作台</a>
+        <a href="./admin.html">管理页</a>
+        <a href="./">客户首页</a>
+      </nav>
+    </header>
+
+    <main class="employee-main">
+      <section class="employee-hero">
+        <div>
+          <p class="eyebrow">AI Employee</p>
+          <h1>Lina，AI款式与花型设计员工</h1>
+          <p>围绕目标市场、品类和风格方向，持续生成可打样、可出图、可上架测试的款式与花型概念，并自动沉淀到素材库。</p>
+        </div>
+        <div class="employee-card">
+          <span>今日职责</span>
+          <strong>丰富素材库</strong>
+          <small>生成款式方向、花型描述、色组、产品图提示词、矢量图提示词和TK钩子。</small>
+        </div>
+      </section>
+
+      <section class="employee-workspace">
+        <form id="employeeForm" class="employee-brief">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Design Brief</p>
+              <h2>给AI员工派任务</h2>
+            </div>
+            <button type="button" id="fillEmployeeDemo">填入示例</button>
+          </div>
+
+          <label>
+            管理密码
+            <input name="adminPin" type="password" placeholder="输入 ADMIN_PIN" />
+          </label>
+
+          <div class="two-col">
+            <label>
+              品类
+              <input name="category" placeholder="例如：女装连衣裙 / 衬衫套装 / 针织背心" />
+            </label>
+            <label>
+              目标市场
+              <select name="market">
+                <option>US</option>
+                <option>UK</option>
+                <option>EU</option>
+                <option>Japan</option>
+                <option>Southeast Asia</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="two-col">
+            <label>
+              平台
+              <select name="platform">
+                <option>TikTok Shop / Shopify</option>
+                <option>Amazon</option>
+                <option>独立站</option>
+                <option>客户提案/工厂打样</option>
+              </select>
+            </label>
+            <label>
+              季节
+              <select name="season">
+                <option>Spring / Summer</option>
+                <option>Fall / Winter</option>
+                <option>Resort</option>
+                <option>All Season</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            主题方向
+            <input name="theme" placeholder="例如：美区夏季碎花连衣裙、通勤套装、海边度假胶囊系列" />
+          </label>
+
+          <label>
+            风格关键词
+            <input name="styleKeywords" placeholder="例如：轻熟、显瘦、低饱和、好拍视频、适合主图" />
+          </label>
+
+          <div class="two-col">
+            <label>
+              面料/工艺方向
+              <input name="fabric" placeholder="例如：雪纺、人棉、亚麻感、罗纹针织、数码印花" />
+            </label>
+            <label>
+              价格定位
+              <select name="pricePosition">
+                <option>mid-market</option>
+                <option>value price</option>
+                <option>boutique premium</option>
+                <option>factory proposal</option>
+              </select>
+            </label>
+          </div>
+
+          <label>
+            生成数量
+            <select name="count">
+              <option>3</option>
+              <option selected>6</option>
+              <option>8</option>
+            </select>
+          </label>
+
+          <button class="primary-action" type="submit">
+            <span>让AI员工生成并入库</span>
+            <b>AI</b>
+          </button>
+        </form>
+
+        <section class="employee-output">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Material Library</p>
+              <h2>素材库</h2>
+            </div>
+            <button type="button" id="refreshLibrary">刷新素材库</button>
+          </div>
+          <div id="employeeStatus" class="employee-status">输入管理密码后，可以生成新款式并读取素材库。</div>
+          <div id="libraryList" class="library-grid"></div>
+        </section>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="./employee.js"></script>
+  </body>
+</html>

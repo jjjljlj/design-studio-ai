@@ -9,6 +9,8 @@ const publicDir = join(__dirname, "public");
 const dataDir = join(__dirname, "data");
 const feedbackFile = join(dataDir, "feedback.jsonl");
 const projectsDir = join(dataDir, "projects");
+const libraryDir = join(dataDir, "library");
+const conceptLibraryFile = join(libraryDir, "concepts.jsonl");
 
 async function loadLocalEnv() {
   try {
@@ -114,6 +116,64 @@ JSON shape:
     {"hook":"English 3-second hook","shots":["4 short shot notes"],"voiceover":"English voiceover","caption":"English caption"}
   ],
   "nextInputsNeeded": ["Chinese list of missing fields"]
+}`.trim();
+}
+
+function buildEmployeePrompt(payload) {
+  const count = Math.min(8, Math.max(3, Number(payload.count || 6)));
+  return `
+You are "Lina", an AI employee for a cross-border fashion product development studio.
+Your job is to create commercially usable style concepts and textile print concepts for an internal material library.
+Return concise JSON only. No markdown.
+
+Brief:
+- Category: ${payload.category || "women apparel"}
+- Target market: ${payload.market || "US"}
+- Platform: ${payload.platform || "TikTok Shop / Shopify"}
+- Season: ${payload.season || "Spring Summer"}
+- Theme: ${payload.theme || "commercial trend development"}
+- Style keywords: ${payload.styleKeywords || "wearable, photogenic, ecommerce-ready"}
+- Fabric direction: ${payload.fabric || "not specified"}
+- Price positioning: ${payload.pricePosition || "mid-market"}
+- Required concept count: ${count}
+
+Rules:
+- Do not reference luxury brands, celebrities, trademarks, copyrighted characters, or fake certifications.
+- Focus on realistic apparel development, textile print development, ecommerce photos, digital vector artwork, and TikTok content hooks.
+- Product-facing copy, image prompts, vector prompts, and TikTok hooks should be natural English.
+- Internal notes, risk notes, and next actions should be in Chinese.
+- Color palettes must include practical color names and hex values.
+- Each concept should be distinct enough to test as a separate customer direction.
+
+JSON shape:
+{
+  "batchTitle": "English batch name",
+  "employee": {
+    "name": "Lina",
+    "role": "AI Style & Print Designer",
+    "routine": "Chinese one-sentence working routine"
+  },
+  "libraryTags": ["English or Chinese tags"],
+  "concepts": [
+    {
+      "name": "English commercial concept name",
+      "category": "English category",
+      "targetCustomer": "English target customer",
+      "styleDirection": "Chinese style direction",
+      "silhouette": "Chinese garment silhouette and details",
+      "fabricAndCraft": "Chinese fabric/craft suggestion",
+      "patternName": "English print/pattern name",
+      "patternDescription": "Chinese print description",
+      "colorPalette": [{"name":"English color name","hex":"#000000"}],
+      "imagePrompt": "English ecommerce/model/lifestyle image prompt",
+      "vectorPrompt": "English editable textile vector/seamless repeat prompt",
+      "listingAngle": "English ecommerce selling angle",
+      "tiktokHook": "English 3-second hook",
+      "riskNotes": ["Chinese compliance or production notes"],
+      "nextAction": "Chinese next step for sampling, image generation, or customer validation"
+    }
+  ],
+  "nextBrief": "Chinese suggestion for the next library generation brief"
 }`.trim();
 }
 
@@ -347,6 +407,147 @@ async function callResponses(payload) {
   return { ...parseJsonObject(text), mode: "live", provider: "openai" };
 }
 
+function mockEmployeeDesigns(payload) {
+  const category = payload.category || "women apparel";
+  const theme = payload.theme || "commercial summer capsule";
+  return {
+    mode: "demo",
+    provider: "demo",
+    batchTitle: "Sample Library Capsule",
+    employee: {
+      name: "Lina",
+      role: "AI Style & Print Designer",
+      routine: "每天围绕目标市场生成可打样、可出图、可上架测试的款式与花型方向。"
+    },
+    libraryTags: [category, theme, "sample-to-sell", "print development"],
+    concepts: [
+      {
+        name: "Soft Resort Midi",
+        category,
+        targetCustomer: "Women looking for easy vacation outfits",
+        styleDirection: "轻度假、日常可穿、适合短视频展示上身效果。",
+        silhouette: "V领中长款连衣裙，微收腰，短袖，裙摆有自然垂感。",
+        fabricAndCraft: "轻薄梭织或人棉感面料，小批量先做数码印花。",
+        patternName: "Coral Garden Micro Floral",
+        patternDescription: "小比例碎花，珊瑚色与鼠尾草绿组合，适合春夏主图和场景图。",
+        colorPalette: [
+          { name: "Sage Green", hex: "#8BAE9B" },
+          { name: "Soft Coral", hex: "#E98B78" },
+          { name: "Ivory", hex: "#F7F0E6" }
+        ],
+        imagePrompt: "Ecommerce model photo of a soft resort midi dress, natural daylight, clean neutral background, accurate floral print, realistic fabric drape, full outfit visible",
+        vectorPrompt: "Editable seamless micro floral textile vector, sage green base, ivory flowers, soft coral accents, clean layers, digital print ready",
+        listingAngle: "Easy vacation-ready midi dress with a soft floral print and comfortable everyday styling.",
+        tiktokHook: "The dress I pack when I do not want to overthink a vacation outfit.",
+        riskNotes: ["避免花型过密导致主图不清晰。", "需要确认面料透光和尺码表。"],
+        nextAction: "先生成一张4:5模特主图和一张9:16 TK封面，测试点击。"
+      },
+      {
+        name: "Urban Airy Shirt Set",
+        category,
+        targetCustomer: "Women who want casual polished summer looks",
+        styleDirection: "通勤休闲、可套装也可拆穿，适合独立站和TikTok Shop测试。",
+        silhouette: "宽松短袖衬衫搭配直筒短裤，门襟简洁，口袋做轻量细节。",
+        fabricAndCraft: "亚麻感混纺，建议开发素色和细条纹两个版本。",
+        patternName: "Washed Pinstripe",
+        patternDescription: "低对比细条纹，保留清爽感，适合多色组扩展。",
+        colorPalette: [
+          { name: "Washed Blue", hex: "#8DAFC3" },
+          { name: "Warm White", hex: "#F5F1E8" },
+          { name: "Graphite", hex: "#3F4A4D" }
+        ],
+        imagePrompt: "Lifestyle ecommerce photo of a relaxed shirt and shorts set, summer city street, natural movement, clear fit, clean modern styling",
+        vectorPrompt: "Editable yarn-dyed pinstripe vector pattern, washed blue and warm white, repeat tile, production-ready layers",
+        listingAngle: "A breathable matching set that looks put together with almost no styling effort.",
+        tiktokHook: "This matching set makes a simple outfit look finished in five seconds.",
+        riskNotes: ["套装需要注意上下装色差。", "短裤长度要避免目标市场尺码争议。"],
+        nextAction: "先做素色与细条纹两套图，给客户选择更商业的方向。"
+      },
+      {
+        name: "Weekend Knit Tank",
+        category,
+        targetCustomer: "Women building capsule wardrobes",
+        styleDirection: "基础款升级，强调纹理、版型和百搭性。",
+        silhouette: "修身但不紧身的针织背心，宽肩带，微方领，下摆到高腰位置。",
+        fabricAndCraft: "棉感罗纹针织，重点测试白色不透与弹力恢复。",
+        patternName: "Rib Texture Colorway",
+        patternDescription: "以肌理和色组为主，不做复杂印花，适合素材库基础款方向。",
+        colorPalette: [
+          { name: "Oat Milk", hex: "#E8DECF" },
+          { name: "Deep Teal", hex: "#0F766E" },
+          { name: "Clay Rose", hex: "#C97867" }
+        ],
+        imagePrompt: "Clean ecommerce model photo of a ribbed knit tank top, capsule wardrobe styling, high-waist jeans, neutral studio light, realistic knit texture",
+        vectorPrompt: "Editable rib knit texture swatch vector, clean vertical rib structure, colorway expansion, no logos",
+        listingAngle: "A soft ribbed tank designed for easy layering and everyday capsule outfits.",
+        tiktokHook: "The basic tank that makes jeans look cleaner instantly.",
+        riskNotes: ["需要测试浅色透光。", "针织纹理生成图容易失真，提示词要强调真实罗纹。"],
+        nextAction: "补充面料近拍和白底细节图，建立基础款素材模板。"
+      }
+    ],
+    nextBrief: "下一轮可以按“美区夏季连衣裙花型”或“通勤套装低成本面料”继续扩展。"
+  };
+}
+
+async function callEmployeeDesigner(payload) {
+  const provider = chooseTextProvider();
+  const prompt = buildEmployeePrompt(payload);
+
+  if (provider === "demo") return mockEmployeeDesigns(payload);
+
+  if (provider === "deepseek") {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) return mockEmployeeDesigns(payload);
+    const result = await callOpenAICompatibleChat({
+      baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
+      apiKey,
+      model: process.env.DEEPSEEK_TEXT_MODEL || "deepseek-chat",
+      prompt,
+      provider: "DeepSeek"
+    });
+    return { ...result, mode: "live", provider: "deepseek" };
+  }
+
+  if (provider === "qwen") {
+    const apiKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) return mockEmployeeDesigns(payload);
+    const result = await callOpenAICompatibleChat({
+      baseUrl: process.env.QWEN_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      apiKey,
+      model: process.env.QWEN_TEXT_MODEL || "qwen-plus",
+      prompt,
+      provider: "Qwen"
+    });
+    return { ...result, mode: "live", provider: "qwen" };
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return mockEmployeeDesigns(payload);
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_TEXT_MODEL || "gpt-5.5",
+      input: prompt,
+      text: {
+        format: { type: "json_object" }
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`OpenAI Responses API error ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return { ...parseJsonObject(extractText(data)), mode: "live", provider: "openai" };
+}
+
 async function callImageGeneration(payload) {
   const provider = chooseImageProvider();
 
@@ -568,6 +769,71 @@ function publicProjectPayload(project) {
   };
 }
 
+function normalizeConcept(concept, batch, index) {
+  const now = batch.createdAt || new Date().toISOString();
+  return {
+    id: randomUUID(),
+    batchId: batch.batchId,
+    createdAt: now,
+    source: "ai_employee",
+    employee: batch.employee,
+    status: "new",
+    tags: batch.libraryTags || [],
+    index,
+    concept: trimJsonValue(concept || {})
+  };
+}
+
+async function saveLibraryBatch(result, payload = {}) {
+  await mkdir(libraryDir, { recursive: true });
+  const batch = {
+    batchId: randomUUID(),
+    createdAt: new Date().toISOString(),
+    batchTitle: sanitizeText(result.batchTitle, "AI Design Library Batch"),
+    employee: trimJsonValue(result.employee || { name: "Lina", role: "AI Style & Print Designer" }),
+    libraryTags: trimJsonValue(result.libraryTags || []),
+    brief: trimJsonValue(payload)
+  };
+  const concepts = Array.isArray(result.concepts) ? result.concepts : [];
+  const records = concepts.map((concept, index) => normalizeConcept(concept, batch, index + 1));
+  if (records.length) {
+    await appendFile(conceptLibraryFile, `${records.map((record) => JSON.stringify(record)).join("\n")}\n`, "utf8");
+  }
+  return {
+    ...result,
+    batchId: batch.batchId,
+    createdAt: batch.createdAt,
+    savedCount: records.length,
+    concepts: records.map((record) => ({ ...record.concept, libraryId: record.id }))
+  };
+}
+
+async function listLibraryConcepts(limit = 120) {
+  try {
+    const content = await readFile(conceptLibraryFile, "utf8");
+    return content
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
+async function generateEmployeeLibrary(payload) {
+  const result = await callEmployeeDesigner(payload);
+  return saveLibraryBatch(result, payload);
+}
+
 async function saveProject(payload, req) {
   await mkdir(projectsDir, { recursive: true });
   const id = randomUUID();
@@ -694,6 +960,7 @@ async function adminSummary(req, url) {
   assertAdmin(req, url);
   const projects = await listProjects();
   const feedback = await listFeedback();
+  const libraryConcepts = await listLibraryConcepts(20);
   return {
     ok: true,
     generatedAt: new Date().toISOString(),
@@ -703,10 +970,12 @@ async function adminSummary(req, url) {
       waiting: projects.filter((project) => project.status === "waiting_confirmation").length,
       feedbackReceived: projects.filter((project) => project.status === "feedback_received").length,
       approved: projects.filter((project) => project.status === "approved").length,
-      leads: feedback.length
+      leads: feedback.length,
+      libraryConcepts: libraryConcepts.length
     },
     projects,
-    feedback
+    feedback,
+    libraryConcepts
   };
 }
 
@@ -725,6 +994,12 @@ async function handleApi(req, res) {
       return;
     }
 
+    if (req.method === "GET" && pathname === "/api/library/concepts") {
+      assertAdmin(req, url);
+      sendJson(res, 200, { ok: true, concepts: await listLibraryConcepts() });
+      return;
+    }
+
     const projectMatch = pathname.match(/^\/api\/projects\/([^/]+)$/);
     if (req.method === "GET" && projectMatch) {
       const project = await loadProject(projectMatch[1]);
@@ -740,6 +1015,12 @@ async function handleApi(req, res) {
     }
     if (pathname === "/api/generate/image") {
       const result = await callImageGeneration(body);
+      sendJson(res, 200, result);
+      return;
+    }
+    if (req.method === "POST" && pathname === "/api/employee/generate") {
+      assertAdmin(req, url);
+      const result = await generateEmployeeLibrary(body);
       sendJson(res, 200, result);
       return;
     }

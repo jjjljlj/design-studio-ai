@@ -67,6 +67,7 @@ function renderStats(summary) {
     ["已反馈", totals.feedbackReceived || 0],
     ["已通过", totals.approved || 0],
     ["试用线索", totals.leads || 0],
+    ["素材库", totals.libraryConcepts || 0],
     ["当前模型", `${status.textProvider || "-"} / ${status.imageProvider || "-"}`]
   ]
     .map(
