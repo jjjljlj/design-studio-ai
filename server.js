@@ -415,6 +415,8 @@ async function callQwenImageGeneration(payload) {
     };
   }
 
+  const qwenSize = normalizeQwenImageSize(process.env.QWEN_IMAGE_SIZE || payload.size);
+
   const response = await fetch("https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis", {
     method: "POST",
     headers: {
@@ -429,7 +431,7 @@ async function callQwenImageGeneration(payload) {
         negative_prompt: payload.negative || "low quality, blurry, distorted garment, wrong color, extra logo"
       },
       parameters: {
-        size: process.env.QWEN_IMAGE_SIZE || "1024*1536",
+        size: qwenSize,
         n: 1
       }
     })
@@ -468,6 +470,14 @@ async function callQwenImageGeneration(payload) {
   }
 
   throw new Error("Qwen Image task timed out.");
+}
+
+function normalizeQwenImageSize(size) {
+  const raw = String(size || "1024*1440").trim().replace("x", "*");
+  const match = raw.match(/^(\d{3,4})\*(\d{3,4})$/);
+  if (!match) return "1024*1440";
+  const clamp = (value) => Math.min(1440, Math.max(512, Number(value)));
+  return `${clamp(match[1])}*${clamp(match[2])}`;
 }
 
 function getRuntimeStatus() {
