@@ -52,6 +52,21 @@ function palette(colors = []) {
   `;
 }
 
+function normalizeList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return [value].filter(Boolean);
+}
+
+function listMarkup(items = []) {
+  const values = normalizeList(items);
+  if (!values.length) return "";
+  return `
+    <ul>
+      ${values.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+    </ul>`;
+}
+
 function conceptCard(record) {
   const concept = record.concept || record;
   const cardId = escapeHtml(record.id || `${concept.name || "concept"}-${record.createdAt || Date.now()}`);
@@ -87,6 +102,20 @@ function conceptCard(record) {
         <p>${escapeHtml(concept.patternDescription || "")}</p>
         <strong>面料/工艺</strong>
         <p>${escapeHtml(concept.fabricAndCraft || "")}</p>
+      </div>
+      <div class="library-commercial">
+        ${normalizeList(concept.platformUsage).length
+          ? `<strong>适合平台/用途</strong>${listMarkup(concept.platformUsage)}`
+          : ""}
+        ${concept.titleDirection
+          ? `<strong>英文标题方向</strong><p>${escapeHtml(concept.titleDirection)}</p>`
+          : ""}
+        ${normalizeList(concept.coreSellingPoints).length
+          ? `<strong>核心卖点</strong>${listMarkup(concept.coreSellingPoints)}`
+          : ""}
+        ${concept.tiktokHook
+          ? `<strong>TK 3秒钩子</strong><p>${escapeHtml(concept.tiktokHook)}</p>`
+          : ""}
       </div>
       <div class="library-prompts">
         ${prompts

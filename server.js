@@ -225,7 +225,7 @@ JSON shape:
 }
 
 function buildEmployeePrompt(payload) {
-  const count = Math.min(8, Math.max(3, Number(payload.count || 6)));
+  const count = Math.min(12, Math.max(3, Number(payload.count || 6)));
   return `
 You are "Lina", an AI employee for a cross-border fashion product development studio.
 Your job is to create commercially usable style concepts and textile print concepts for an internal material library.
@@ -249,6 +249,8 @@ Rules:
 - Internal notes, risk notes, and next actions should be in Chinese.
 - Color palettes must include practical color names and hex values.
 - Each concept should be distinct enough to test as a separate customer direction.
+- Treat each concept as a candidate product that can move toward listing material.
+- For satin/silky-look sleepwear, pay attention to lace trim, contrast piping, bow details, bridal morning, giftable packaging, vacation resort styling, French apartment warm lifestyle imagery, and original small florals.
 
 JSON shape:
 {
@@ -272,6 +274,9 @@ JSON shape:
       "colorPalette": [{"name":"English color name","hex":"#000000"}],
       "imagePrompt": "English ecommerce/model/lifestyle image prompt",
       "vectorPrompt": "English editable textile vector/seamless repeat prompt",
+      "platformUsage": ["English platform/use case, e.g. TikTok Shop main image", "Shopify product page", "Amazon listing image"],
+      "titleDirection": "English SEO-friendly title direction, not keyword stuffed",
+      "coreSellingPoints": ["English selling point 1", "English selling point 2", "English selling point 3"],
       "listingAngle": "English ecommerce selling angle",
       "tiktokHook": "English 3-second hook",
       "riskNotes": ["Chinese compliance or production notes"],

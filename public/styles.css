@@ -2068,6 +2068,7 @@ textarea:focus {
 }
 
 .library-detail,
+.library-commercial,
 .library-next {
   padding: 12px;
   border-radius: 8px;
@@ -2075,6 +2076,7 @@ textarea:focus {
 }
 
 .library-detail strong,
+.library-commercial strong,
 .library-next strong {
   display: block;
   margin-top: 8px;
@@ -2082,15 +2084,33 @@ textarea:focus {
 }
 
 .library-detail strong:first-child,
+.library-commercial strong:first-child,
 .library-next strong:first-child {
   margin-top: 0;
 }
 
 .library-detail p,
+.library-commercial p,
 .library-next p {
   margin: 5px 0 0;
   color: #3d4654;
   line-height: 1.6;
+}
+
+.library-commercial {
+  margin-top: 12px;
+  background: rgba(255, 252, 244, 0.88);
+}
+
+.library-commercial ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: #3d4654;
+  line-height: 1.55;
+}
+
+.library-commercial li + li {
+  margin-top: 4px;
 }
 
 .library-prompts {
