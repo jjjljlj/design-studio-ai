@@ -1,12 +1,24 @@
-@echo off
+﻿@echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
 
+if exist "%ProgramFiles%\Git\cmd\git.exe" set "GIT_EXE=%ProgramFiles%\Git\cmd\git.exe"
+if not defined GIT_EXE if exist "%ProgramFiles(x86)%\Git\cmd\git.exe" set "GIT_EXE=%ProgramFiles(x86)%\Git\cmd\git.exe"
+if not defined GIT_EXE (
+  where git >nul 2>nul
+  if %errorlevel%==0 set "GIT_EXE=git"
+)
+if not defined GIT_EXE (
+  echo Git was not found. Install Git first.
+  pause
+  exit /b 1
+)
+
 echo ==========================
-echo Design Studio AI 部署助手
+echo Design Studio AI Deploy Helper
 echo ==========================
 echo.
-echo 此脚本支持：
+echo Steps:
 echo 1) init/switch main branch
 echo 2) commit current changes
 echo 3) push to GitHub repository
@@ -15,22 +27,22 @@ echo.
 
 if not exist ".git\" (
   echo .git not found, initialize repository...
-  git init
+  "%GIT_EXE%" init
 )
 
-git branch -M main
+"%GIT_EXE%" branch -M main
 
 echo Ready to commit current snapshot.
-git add .
+"%GIT_EXE%" add .
 set /p commitMessage=Enter commit message [default chore: update design studio ai]:
 if "%commitMessage%"=="" set commitMessage=chore: update design studio ai
 
-git commit -m "%commitMessage%" >nul 2>nul
+"%GIT_EXE%" commit -m "%commitMessage%" >nul 2>nul
 if %errorlevel% neq 0 (
   echo No new files to commit, keep existing commit history.
 )
 
-for /f "delims=" %%R in ('git remote get-url origin 2^>nul') do set "GITHUB_REMOTE=%%R"
+for /f "delims=" %%R in ('"%GIT_EXE%" remote get-url origin 2^>nul') do set "GITHUB_REMOTE=%%R"
 if not defined GITHUB_REMOTE (
   echo.
   echo Remote origin is missing.
@@ -40,7 +52,7 @@ if not defined GITHUB_REMOTE (
     pause
     exit /b 1
   )
-  git remote add origin "%GITHUB_REMOTE%"
+  "%GIT_EXE%" remote add origin "%GITHUB_REMOTE%"
 )
 
 echo.
@@ -51,7 +63,7 @@ if /I "%pushNow%"=="N" (
   exit /b 0
 )
 
-git push -u origin main
+"%GIT_EXE%" push -u origin main
 if %errorlevel% neq 0 (
   echo.
   echo Push failed. Common causes: token/credentials, no permission, or wrong repo name.
