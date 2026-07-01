@@ -108,6 +108,10 @@ feedbackForm?.addEventListener("submit", async (event) => {
     setFeedbackStatus("请填写想解决的核心问题。", true);
     return;
   }
+  if (!String(data.sourceChannel || "").trim()) {
+    setFeedbackStatus("请选择你从哪里了解我们。", true);
+    return;
+  }
   if (data.agreeData !== "true") {
     setFeedbackStatus("请先勾选数据用途同意项。", true);
     return;

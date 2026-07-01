@@ -148,6 +148,7 @@ function renderFeedback(feedback = []) {
             <span>邮箱：${escapeHtml(item.contact?.email || "未填写")}</span>
             <span>手机：${escapeHtml(item.contact?.phone || "未填写")}</span>
             <span>阶段：${escapeHtml(item.businessStage || "未填写")}</span>
+            <span>来源：${escapeHtml(item.sourceChannel || item.source || "未填写")}</span>
           </div>
           <div class="record-note">
             <strong>核心问题</strong>

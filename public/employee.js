@@ -5,6 +5,8 @@ const libraryList = document.querySelector("#libraryList");
 const employeeStatus = document.querySelector("#employeeStatus");
 const toast = document.querySelector("#toast");
 const employeePinKey = "design-studio-employee-pin";
+const imageCooldownKey = "design-studio-employee-image-cooldown";
+const imageCooldownSeconds = 45;
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -28,6 +30,15 @@ function setStatus(message, isError = false) {
 
 function adminPin() {
   return employeeForm.adminPin.value.trim();
+}
+
+function imageCooldownRemaining() {
+  const lastUsedAt = Number(sessionStorage.getItem(imageCooldownKey) || 0);
+  return Math.max(0, imageCooldownSeconds - Math.floor((Date.now() - lastUsedAt) / 1000));
+}
+
+function markImageCooldown() {
+  sessionStorage.setItem(imageCooldownKey, String(Date.now()));
 }
 
 function dateText(value) {
@@ -397,9 +408,16 @@ document.addEventListener("click", async (event) => {
   const prompt = imageButton.dataset.prompt;
   if (!preview || !prompt) return;
 
+  const waitSeconds = imageCooldownRemaining();
+  if (waitSeconds > 0) {
+    setStatus(`图片生成冷却中，请等待 ${waitSeconds} 秒后再试，避免连续消耗额度。`, true);
+    return;
+  }
+
   const originalText = imageButton.textContent;
   imageButton.disabled = true;
   imageButton.textContent = "生成中...";
+  markImageCooldown();
   preview.innerHTML = `
     <div class="library-image-loading">
       AI图片生成中，通常需要几十秒。生成结果仅供内部预览，未授权不要转发或商用。
@@ -427,7 +445,7 @@ document.addEventListener("click", async (event) => {
       : `<div class="image-placeholder">当前图片模型未返回图片，可复制提示词稍后重试。</div>`;
 
     preview.innerHTML = `
-      <div class="rights-note">内部预览素材，仅供本项目确认使用。未经授权请勿下载、转发或商用。</div>
+      <div class="rights-note">内部演示 / 需确认商用授权 / 建议加水印后再给客户下载。</div>
       ${imageHtml}
       <details>
         <summary>查看使用的提示词</summary>

@@ -17,6 +17,8 @@ let latestResult = null;
 let latestBrief = null;
 let latestProjectLink = null;
 const workspacePinKey = "design-studio-workspace-pin";
+const imageCooldownKey = "design-studio-workspace-image-cooldown";
+const imageCooldownSeconds = 45;
 
 const form = document.querySelector("#briefForm");
 const resultMain = document.querySelector("#resultMain");
@@ -66,6 +68,15 @@ function ensureAdminPin() {
   showToast("请输入操作密码");
   form.elements.adminPin?.focus();
   return false;
+}
+
+function imageCooldownRemaining() {
+  const lastUsedAt = Number(sessionStorage.getItem(imageCooldownKey) || 0);
+  return Math.max(0, imageCooldownSeconds - Math.floor((Date.now() - lastUsedAt) / 1000));
+}
+
+function markImageCooldown() {
+  sessionStorage.setItem(imageCooldownKey, String(Date.now()));
 }
 
 const savedWorkspacePin = sessionStorage.getItem(workspacePinKey);
@@ -594,7 +605,14 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
 
   if (!ensureAdminPin()) return;
 
+  const waitSeconds = imageCooldownRemaining();
+  if (waitSeconds > 0) {
+    showToast(`图片生成冷却中，请等待 ${waitSeconds} 秒后再试`);
+    return;
+  }
+
   showToast("正在生成主图预览");
+  markImageCooldown();
   try {
     const response = await fetch("/api/generate/image", {
       method: "POST",
@@ -611,7 +629,7 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
     resultMain.insertAdjacentHTML(
       "afterbegin",
       `<div class="result-content generated-image protected-preview">
-        <div class="rights-note">内部预览素材，仅供本项目确认使用。未经授权请勿下载、转发或商用。</div>
+        <div class="rights-note">内部演示 / 需确认商用授权 / 建议加水印后再给客户下载。</div>
         ${imageHtml}
         <div class="result-block">
           <h3>使用的提示词</h3>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Design Studio AI - 隐私与素材授权说明</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="customer-page">
+    <header class="customer-nav">
+      <div class="brand">
+        <div class="brand-mark">DS</div>
+        <div>
+          <strong>Design Studio AI</strong>
+          <span>Privacy & Rights Notice</span>
+        </div>
+      </div>
+      <nav>
+        <a href="./customer.html">客户首页</a>
+        <a href="./customer.html#feedback">预约试用</a>
+      </nav>
+    </header>
+
+    <main class="privacy-main">
+      <section class="privacy-hero">
+        <p class="eyebrow">Privacy Notice</p>
+        <h1>隐私与素材授权说明</h1>
+        <p>
+          本页面用于说明 Design Studio AI 试用申请信息、项目沟通资料和 AI 生成图片预览的使用边界。
+          如后续接入正式客户账号、真实平台上架、价格、库存、广告或订单数据，将另行确认授权范围。
+        </p>
+      </section>
+
+      <section class="privacy-grid">
+        <article>
+          <h2>我们收集哪些信息</h2>
+          <p>
+            预约试用表单会收集姓名/昵称、公司/品牌、邮箱或手机号、业务阶段、来源渠道、核心需求、
+            目标市场/人群、预算范围、备注和偏好回复时间。
+          </p>
+        </article>
+        <article>
+          <h2>信息用途</h2>
+          <p>
+            信息仅用于试用回访、项目需求沟通、演示方案准备、内部服务改进和交付范围确认。
+            不会用于刷单、刷评、虚假投放或未经确认的真实平台操作。
+          </p>
+        </article>
+        <article>
+          <h2>存储位置</h2>
+          <p>
+            线上环境优先保存到 Supabase 的 <code>design_records</code> 表，
+            记录类型为 <code>feedback</code>。如果持久化服务不可用，会临时写入服务端
+            <code>data/feedback.jsonl</code> 作为 fallback 记录。
+          </p>
+        </article>
+        <article>
+          <h2>图片生成与授权</h2>
+          <p>
+            AI 生成的产品图、花型图和场景图默认为内部演示/方向确认素材。
+            未经过样衣一致性审核、版权状态确认、水印处理和客户书面授权前，不建议直接商用、下载分发或真实上架。
+          </p>
+        </article>
+        <article>
+          <h2>资料保护</h2>
+          <p>
+            后台页面、员工页和图片生成入口需要管理密码。对外客户页不会显示 API Key、数据库密钥或管理密码。
+            客户素材和试用线索应按项目隔离管理，不建议把未授权图片公开传播。
+          </p>
+        </article>
+        <article>
+          <h2>联系我们</h2>
+          <p>
+            如需查询、修改或删除试用申请信息，请联系项目负责人。
+            联系方式占位：请在正式发布前补充邮箱、微信或企业联系方式。
+          </p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

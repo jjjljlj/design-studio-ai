@@ -11,6 +11,8 @@ const feedbackFile = join(dataDir, "feedback.jsonl");
 const projectsDir = join(dataDir, "projects");
 const libraryDir = join(dataDir, "library");
 const conceptLibraryFile = join(libraryDir, "concepts.jsonl");
+const imageCooldownMap = new Map();
+const imageCooldownMs = Math.max(Number(process.env.IMAGE_GENERATION_COOLDOWN_SECONDS || 45), 10) * 1000;
 
 async function loadLocalEnv() {
   try {
@@ -920,6 +922,25 @@ function assertAdmin(req, url) {
   }
 }
 
+function clientFingerprint(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return forwarded || req.socket?.remoteAddress || "unknown-client";
+}
+
+function assertImageCooldown(req) {
+  const key = `${getAdminPin(req, new URL(req.url, "http://localhost")).slice(0, 12)}:${clientFingerprint(req)}`;
+  const now = Date.now();
+  const lastUsedAt = imageCooldownMap.get(key) || 0;
+  const waitMs = imageCooldownMs - (now - lastUsedAt);
+  if (waitMs > 0) {
+    const error = new Error(`图片生成冷却中，请等待 ${Math.ceil(waitMs / 1000)} 秒后再试。`);
+    error.statusCode = 429;
+    error.retryAfter = Math.ceil(waitMs / 1000);
+    throw error;
+  }
+  imageCooldownMap.set(key, now);
+}
+
 function trimJsonValue(value, depth = 0) {
   if (depth > 8) return null;
   if (typeof value === "string") return value.slice(0, 8000);
@@ -1155,6 +1176,7 @@ async function saveFeedback(payload) {
       preferredContactTime: sanitizeText(payload.preferredContactTime)
     },
     businessStage: sanitizeText(payload.businessStage),
+    sourceChannel: sanitizeText(payload.sourceChannel, "未填写"),
     useCase: sanitizeText(payload.useCase),
     expectedResult: sanitizeText(payload.expectedResult),
     budget: sanitizeText(payload.budget),
@@ -1199,7 +1221,7 @@ function csvCell(value) {
 
 function feedbackCsv(feedback = []) {
   const rows = [
-    ["提交时间", "姓名", "公司/品牌", "邮箱", "手机号", "偏好回复时间", "业务阶段", "核心问题", "目标市场/人群", "预算范围", "备注", "来源"]
+    ["提交时间", "姓名", "公司/品牌", "邮箱", "手机号", "偏好回复时间", "业务阶段", "来源渠道", "核心问题", "目标市场/人群", "预算范围", "备注", "来源"]
   ];
   for (const item of feedback) {
     rows.push([
@@ -1210,6 +1232,7 @@ function feedbackCsv(feedback = []) {
       item.contact?.phone,
       item.contact?.preferredContactTime,
       item.businessStage,
+      item.sourceChannel,
       item.useCase,
       item.expectedResult,
       item.budget,
@@ -1287,6 +1310,7 @@ async function handleApi(req, res) {
     }
     if (pathname === "/api/generate/image") {
       assertAdmin(req, url);
+      assertImageCooldown(req);
       const result = await callImageGeneration(body);
       sendJson(res, 200, result);
       return;
