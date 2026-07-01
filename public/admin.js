@@ -1,6 +1,7 @@
 const adminPinInput = document.querySelector("#adminPin");
 const loadAdminButton = document.querySelector("#loadAdmin");
 const refreshAdminButton = document.querySelector("#refreshAdmin");
+const exportFeedbackButton = document.querySelector("#exportFeedback");
 const adminMessage = document.querySelector("#adminMessage");
 const adminDashboard = document.querySelector("#adminDashboard");
 const adminStats = document.querySelector("#adminStats");
@@ -194,6 +195,35 @@ async function loadAdminSummary() {
   }
 }
 
+async function exportFeedbackCsv() {
+  const pin = adminPin();
+  if (!pin) {
+    setAdminMessage("请先输入管理密码。", true);
+    return;
+  }
+  try {
+    const response = await fetch("/api/admin/feedback.csv", {
+      headers: { "X-Admin-Pin": pin }
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `design-studio-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast("试用线索 CSV 已开始下载");
+  } catch (error) {
+    setAdminMessage(`导出失败：${error?.message || "请稍后重试"}`, true);
+  }
+}
+
 document.addEventListener("click", async (event) => {
   const button = event.target.closest(".copy-link");
   if (!button) return;
@@ -207,6 +237,7 @@ document.addEventListener("click", async (event) => {
 
 loadAdminButton.addEventListener("click", loadAdminSummary);
 refreshAdminButton.addEventListener("click", loadAdminSummary);
+exportFeedbackButton?.addEventListener("click", exportFeedbackCsv);
 adminPinInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") loadAdminSummary();
 });

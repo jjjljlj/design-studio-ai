@@ -6,6 +6,31 @@
 - 工作台保存的客户确认项目
 - 客户首页提交的试用需求
 
+## 客户注册/试用信息保存在哪里
+
+客户在首页 `/customer.html` 提交“预约试用/试用需求”后，会走接口 `/api/feedback`。
+
+如果已经配置 Supabase：
+
+- 数据表：`public.design_records`
+- 记录类型：`record_type = 'feedback'`
+- 唯一编号：`record_id = 客户线索 id`
+- 客户信息字段：保存在 `payload` 这个 JSONB 字段里
+- 主要字段：姓名、公司/品牌、邮箱、手机号、偏好回复时间、业务阶段、核心需求、目标市场/人群、预算范围、备注、提交来源、提交时间
+
+如果没有配置 Supabase：
+
+- 本地文件：`data/feedback.jsonl`
+- 一行一条客户试用申请记录
+- 注意：Render 免费服务重启或重新部署后，本地文件可能丢失，不建议正式开放时只依赖本地文件。
+
+后台查看与导出：
+
+- 管理页：`/admin.html`
+- 读取接口：`/api/admin/summary`
+- 导出接口：`/api/admin/feedback.csv`
+- 访问保护：需要 `ADMIN_PIN`
+
 Render 免费服务的本地文件可能会在重启或重新部署后清空。为了长期保存数据，建议接入 Supabase 数据库。
 
 ## 1. 在 Supabase 创建数据表

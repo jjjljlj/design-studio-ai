@@ -64,6 +64,16 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function sendText(res, status, text, contentType = "text/plain; charset=utf-8") {
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Cache-Control": "no-store",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+    ...securityHeaders
+  });
+  res.end(text);
+}
+
 function getStorageStatus() {
   const supabaseConfigured = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
   return {
@@ -818,6 +828,12 @@ function sanitizeText(value, fallback = "") {
   return text ? text.slice(0, 1200) : fallback;
 }
 
+function badRequest(message) {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+}
+
 function sanitizeProjectId(id) {
   const safeId = String(id || "").trim();
   if (!/^[a-z0-9-]{20,80}$/i.test(safeId)) throw new Error("Invalid project id.");
@@ -1053,6 +1069,18 @@ async function saveProjectConfirmation(id, payload) {
 }
 
 async function saveFeedback(payload) {
+  if (String(payload.agreeData || "").toLowerCase() !== "true") {
+    throw badRequest("请先同意数据用途说明。");
+  }
+  if (!sanitizeText(payload.name)) {
+    throw badRequest("请填写姓名或昵称。");
+  }
+  if (!sanitizeText(payload.email) && !sanitizeText(payload.phone)) {
+    throw badRequest("请至少填写邮箱或手机号。");
+  }
+  if (!sanitizeText(payload.useCase)) {
+    throw badRequest("请填写想解决的核心问题。");
+  }
   const record = {
     id: randomUUID(),
     createdAt: new Date().toISOString(),
@@ -1103,6 +1131,33 @@ async function listFeedback(limit = 80) {
   }
 }
 
+function csvCell(value) {
+  return `"${String(value ?? "").replaceAll('"', '""').replace(/\r?\n/g, " ")}"`;
+}
+
+function feedbackCsv(feedback = []) {
+  const rows = [
+    ["提交时间", "姓名", "公司/品牌", "邮箱", "手机号", "偏好回复时间", "业务阶段", "核心问题", "目标市场/人群", "预算范围", "备注", "来源"]
+  ];
+  for (const item of feedback) {
+    rows.push([
+      item.createdAt,
+      item.name,
+      item.company,
+      item.contact?.email,
+      item.contact?.phone,
+      item.contact?.preferredContactTime,
+      item.businessStage,
+      item.useCase,
+      item.expectedResult,
+      item.budget,
+      item.notes,
+      item.source
+    ]);
+  }
+  return `\ufeff${rows.map((row) => row.map(csvCell).join(",")).join("\n")}\n`;
+}
+
 async function adminSummary(req, url) {
   assertAdmin(req, url);
   const projects = await listProjects();
@@ -1138,6 +1193,13 @@ async function handleApi(req, res) {
 
     if (req.method === "GET" && pathname === "/api/admin/summary") {
       sendJson(res, 200, await adminSummary(req, url));
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/api/admin/feedback.csv") {
+      assertAdmin(req, url);
+      const csv = feedbackCsv(await listFeedback(1000));
+      sendText(res, 200, csv, "text/csv; charset=utf-8");
       return;
     }
 

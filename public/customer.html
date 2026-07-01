@@ -22,6 +22,7 @@
         <a href="#services">服务</a>
         <a href="#workflow">流程</a>
         <a href="#demo">体验</a>
+        <a href="#feedback">预约试用</a>
       </nav>
     </header>
 
@@ -31,10 +32,10 @@
           <p class="eyebrow">Sample-to-Sell Studio</p>
           <h1>从一件样衣开始，快速生成上架素材、产品图方案和 TikTok 内容</h1>
           <p>
-            上传样衣或输入开发需求，即可获得商品定位、图片生成清单、英文 Listing、TK 短视频脚本和客户确认问题。
+            面向跨境服装卖家、样衣开发团队和内容运营团队开放试用。上传样衣或输入开发需求，即可获得商品定位、图片生成清单、英文 Listing、TK 短视频脚本和客户确认问题。
           </p>
           <div class="customer-actions">
-            <a class="primary-link" href="./index.html">立即体验演示版</a>
+            <a class="primary-link" href="#feedback">预约试用</a>
             <a class="secondary-link" href="#services">查看可交付内容</a>
           </div>
           <div class="customer-runtime" aria-label="正式站运行状态">
@@ -111,7 +112,7 @@
           <p class="eyebrow">Try Demo</p>
           <h2>先体验样衣到上架素材流程</h2>
           <p>
-            当前版本适合给客户演示完整流程。正式站已接入文本生成、图片生成、项目反馈记录，下一步可继续扩展项目保存、客户确认链接和交付记录。
+            当前版本适合客户预约试用与内部演示。正式站已接入文本生成、图片生成、项目反馈记录和客户需求留档；真实上架、价格、库存、广告和平台账号操作仍需人工确认后执行。
           </p>
         </div>
         <a class="primary-link" href="./index.html">进入设计工作台</a>
@@ -120,12 +121,12 @@
         <div>
           <p class="eyebrow">Try it now</p>
           <h2>提交试用需求，获得回访</h2>
-          <p>留下你的信息和目标场景，我们会在下一次演示前整理一版适配你品类的生成清单与报价框架建议。</p>
+          <p>留下你的信息和目标场景，我们会整理一版适配你品类的生成清单、交付范围和报价框架建议。提交信息仅用于试用回访与项目沟通。</p>
         </div>
 
         <form id="feedbackForm" class="feedback-form">
           <label>姓名/昵称
-            <input name="name" placeholder="例如：王总 / Sarah" />
+            <input name="name" required placeholder="例如：王总 / Sarah" />
           </label>
           <label>公司/品牌
             <input name="company" placeholder="例如：XX Fashion" />
@@ -138,6 +139,7 @@
               <input name="phone" type="tel" placeholder="+86 13800000000" />
             </label>
           </div>
+          <p class="field-hint">邮箱和手机号至少填写一个，方便我们回访确认试用需求。</p>
           <label>业务阶段
             <select name="businessStage">
               <option>请选择</option>
@@ -148,7 +150,7 @@
             </select>
           </label>
           <label>想解决的核心问题
-            <textarea name="useCase" rows="4" placeholder="例如：快出30套花型概念、产品图文案、TikTok脚本"></textarea>
+            <textarea name="useCase" rows="4" required placeholder="例如：快出30套花型概念、产品图文案、TikTok脚本"></textarea>
           </label>
           <label>目标市场 & 目标人群
             <input name="expectedResult" placeholder="例如：US / 女性 18-35, 夏装短款" />
@@ -163,7 +165,7 @@
             <input name="preferredContactTime" placeholder="例如：工作日 10:00-18:00 / 微信优先" />
           </label>
           <label class="feedback-inline">
-            <input type="checkbox" name="agreeData" />
+            <input type="checkbox" name="agreeData" required />
             我同意仅用于项目咨询记录与演示优化，不用于其他商业用途。
           </label>
           <div class="feedback-actions">

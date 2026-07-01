@@ -1426,6 +1426,12 @@ textarea:focus {
   border-radius: 8px;
 }
 
+.field-hint {
+  margin-top: -4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .feedback-inline {
   display: flex !important;
   gap: 8px;
@@ -1743,6 +1749,13 @@ textarea:focus {
 .admin-toolbar h2,
 .admin-panel-heading h2 {
   margin: 0;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .admin-toolbar button {

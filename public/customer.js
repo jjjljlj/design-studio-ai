@@ -96,6 +96,18 @@ feedbackForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const data = Object.fromEntries(new FormData(feedbackForm).entries());
   data.agreeData = data.agreeData ? "true" : "false";
+  if (!String(data.name || "").trim()) {
+    setFeedbackStatus("请填写姓名或昵称。", true);
+    return;
+  }
+  if (!String(data.email || "").trim() && !String(data.phone || "").trim()) {
+    setFeedbackStatus("请至少填写邮箱或手机号，方便我们回访。", true);
+    return;
+  }
+  if (!String(data.useCase || "").trim()) {
+    setFeedbackStatus("请填写想解决的核心问题。", true);
+    return;
+  }
   if (data.agreeData !== "true") {
     setFeedbackStatus("请先勾选数据用途同意项。", true);
     return;
