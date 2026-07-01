@@ -784,6 +784,232 @@ function fashionImageQualityChecklist(payload = {}) {
   ];
 }
 
+function tryOnQualityChecklist() {
+  return [
+    "服装件数是否正确",
+    "领口/肩带/袖长/裤长/下摆是否接近样衣",
+    "花型/颜色/蕾丝/piping/面料光泽是否偏离",
+    "模特身体、脸、手脚是否明显失真",
+    "是否保留内部预览/商用待确认标记"
+  ];
+}
+
+function publicImageUrl(value, label) {
+  const url = sanitizeText(value, "");
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("invalid protocol");
+    return parsed.toString();
+  } catch {
+    throw badRequest(`${label} 必须是可访问的 HTTP/HTTPS 图片 URL。`);
+  }
+}
+
+function tryOnInstructions(provider = chooseTryOnProvider()) {
+  return {
+    provider,
+    requiredInputs: [
+      "modelImageUrl: 模特参考图 HTTP/HTTPS URL",
+      "garmentImageUrl 或 topGarmentUrl: 上衣/套装主图 HTTP/HTTPS URL",
+      "bottomGarmentUrl: 下装图 URL，可选",
+      "category: pajama/loungewear/top/bottom/dress/set",
+      "notes: 必须保留的样衣细节"
+    ],
+    safety: "客户素材上传第三方 API 前必须保留授权记录；结果默认内部预览，商用前人工质检。"
+  };
+}
+
+async function callTryOnGeneration(payload = {}) {
+  const provider = chooseTryOnProvider();
+  const modelImageUrl = publicImageUrl(payload.modelImageUrl || payload.personImageUrl, "modelImageUrl");
+  const garmentImageUrl = publicImageUrl(payload.garmentImageUrl || payload.topGarmentUrl, "garmentImageUrl");
+  const bottomGarmentUrl = publicImageUrl(payload.bottomGarmentUrl, "bottomGarmentUrl");
+  const category = sanitizeText(payload.category, "pajama/loungewear");
+  const notes = sanitizeText(payload.notes);
+
+  if (!modelImageUrl || !garmentImageUrl) {
+    throw badRequest("请至少提供 modelImageUrl 和 garmentImageUrl。");
+  }
+
+  if (provider === "disabled") {
+    return {
+      mode: "dry-run",
+      provider,
+      image: null,
+      modelImageUrl,
+      garmentImageUrl,
+      bottomGarmentUrl,
+      category,
+      notes,
+      qualityChecklist: tryOnQualityChecklist(),
+      instructions: tryOnInstructions(provider),
+      note: "TRYON_PROVIDER=disabled，当前只校验参数，不调用付费虚拟试衣接口。"
+    };
+  }
+
+  if (provider === "aliyun-aitryon") {
+    return callAliyunTryOn({ modelImageUrl, garmentImageUrl, bottomGarmentUrl, category, notes });
+  }
+
+  if (provider === "fashn") {
+    return callFalFashnTryOn({ modelImageUrl, garmentImageUrl, bottomGarmentUrl, category, notes });
+  }
+
+  throw badRequest(`未知虚拟试衣通道：${provider}`);
+}
+
+async function callAliyunTryOn(payload) {
+  const apiKey = process.env.ALIYUN_TRYON_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
+  if (!apiKey) {
+    return {
+      mode: "dry-run",
+      provider: "aliyun-aitryon",
+      image: null,
+      ...payload,
+      qualityChecklist: tryOnQualityChecklist(),
+      instructions: tryOnInstructions("aliyun-aitryon"),
+      note: "未配置 ALIYUN_TRYON_API_KEY / QWEN_API_KEY / DASHSCOPE_API_KEY，未调用付费接口。"
+    };
+  }
+
+  const apiBase = qwenImageApiBaseUrl();
+  const response = await fetch(`${apiBase}/services/aigc/image2image/image-synthesis`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "X-DashScope-Async": "enable"
+    },
+    body: JSON.stringify({
+      model: process.env.ALIYUN_TRYON_MODEL || "aitryon-plus",
+      input: {
+        person_image_url: payload.modelImageUrl,
+        top_garment_url: payload.garmentImageUrl,
+        ...(payload.bottomGarmentUrl ? { bottom_garment_url: payload.bottomGarmentUrl } : {})
+      },
+      parameters: {
+        restore_face: true
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Aliyun Try-On API error ${response.status}: ${errorText}`);
+  }
+
+  const taskData = await response.json();
+  const taskId = taskData.output?.task_id;
+  if (!taskId) throw new Error(`Aliyun Try-On did not return task_id: ${JSON.stringify(taskData)}`);
+
+  for (let i = 0; i < 45; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const poll = await fetch(`${apiBase}/tasks/${taskId}`, {
+      headers: { "Authorization": `Bearer ${apiKey}` }
+    });
+    const statusData = await poll.json();
+    const status = statusData.output?.task_status;
+    if (status === "SUCCEEDED") {
+      const imageUrl = extractQwenImageUrl(statusData);
+      return {
+        mode: "live",
+        provider: "aliyun-aitryon",
+        imageUrl,
+        image: imageUrl || null,
+        taskId,
+        ...payload,
+        qualityChecklist: tryOnQualityChecklist()
+      };
+    }
+    if (status === "FAILED" || status === "CANCELED") {
+      throw new Error(`Aliyun Try-On task ${status}: ${JSON.stringify(statusData)}`);
+    }
+  }
+
+  throw new Error("Aliyun Try-On task timed out.");
+}
+
+async function callFalFashnTryOn(payload) {
+  const apiKey = process.env.FASHN_API_KEY || process.env.FAL_KEY;
+  if (!apiKey) {
+    return {
+      mode: "dry-run",
+      provider: "fashn",
+      image: null,
+      ...payload,
+      qualityChecklist: tryOnQualityChecklist(),
+      instructions: tryOnInstructions("fashn"),
+      note: "未配置 FASHN_API_KEY / FAL_KEY，未调用付费接口。"
+    };
+  }
+
+  const model = process.env.FASHN_TRYON_MODEL || "fal-ai/fashn/tryon/v1.5";
+  const baseUrl = `https://queue.fal.run/${model}`;
+  const response = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Authorization": `Key ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model_image: payload.modelImageUrl,
+      garment_image: payload.garmentImageUrl,
+      category: payload.bottomGarmentUrl ? "tops" : "auto",
+      ...(payload.bottomGarmentUrl ? { bottom_garment_image: payload.bottomGarmentUrl } : {})
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`FASHN/fal Try-On API error ${response.status}: ${errorText}`);
+  }
+
+  const queued = await response.json();
+  const requestId = queued.request_id || queued.requestId;
+  if (!requestId) {
+    return {
+      mode: "submitted",
+      provider: "fashn",
+      task: queued,
+      ...payload,
+      qualityChecklist: tryOnQualityChecklist(),
+      note: "FASHN/fal 已返回结果，但未找到 request_id，请按平台返回检查。"
+    };
+  }
+
+  for (let i = 0; i < 45; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const statusResponse = await fetch(`${baseUrl}/requests/${requestId}/status`, {
+      headers: { "Authorization": `Key ${apiKey}` }
+    });
+    const statusData = await statusResponse.json();
+    const status = String(statusData.status || "").toUpperCase();
+    if (status === "COMPLETED") {
+      const resultResponse = await fetch(`${baseUrl}/requests/${requestId}`, {
+        headers: { "Authorization": `Key ${apiKey}` }
+      });
+      const result = await resultResponse.json();
+      const imageUrl = result.image?.url || result.images?.[0]?.url || result.output?.image?.url || result.output?.images?.[0]?.url || "";
+      return {
+        mode: "live",
+        provider: "fashn",
+        imageUrl,
+        image: imageUrl || null,
+        requestId,
+        ...payload,
+        qualityChecklist: tryOnQualityChecklist(),
+        raw: result
+      };
+    }
+    if (status === "FAILED" || status === "ERROR") {
+      throw new Error(`FASHN/fal Try-On task ${status}: ${JSON.stringify(statusData)}`);
+    }
+  }
+
+  throw new Error("FASHN/fal Try-On task timed out.");
+}
+
 async function callQwenImageGeneration(payload) {
   const apiKey = process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY;
   if (!apiKey) {
@@ -929,6 +1155,7 @@ function getRuntimeStatus() {
   return {
     textProvider: chooseTextProvider(),
     imageProvider: chooseImageProvider(),
+    tryonProvider: chooseTryOnProvider(),
     textModels: {
       openai: process.env.OPENAI_TEXT_MODEL || "gpt-5.5",
       deepseek: process.env.DEEPSEEK_TEXT_MODEL || "deepseek-chat",
@@ -938,13 +1165,26 @@ function getRuntimeStatus() {
       openai: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
       qwen: process.env.QWEN_IMAGE_MODEL || "wanx2.1-t2i-turbo"
     },
+    tryonModels: {
+      aliyun: process.env.ALIYUN_TRYON_MODEL || "aitryon-plus",
+      fal: process.env.FASHN_TRYON_MODEL || "fal-ai/fashn/tryon/v1.5"
+    },
     configured: {
       openai: Boolean(process.env.OPENAI_API_KEY),
       deepseek: Boolean(process.env.DEEPSEEK_API_KEY),
-      qwen: Boolean(process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY)
+      qwen: Boolean(process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY),
+      aliyunTryOn: Boolean(process.env.ALIYUN_TRYON_API_KEY || process.env.QWEN_API_KEY || process.env.DASHSCOPE_API_KEY),
+      fashnTryOn: Boolean(process.env.FASHN_API_KEY || process.env.FAL_KEY)
     },
     storage: getStorageStatus()
   };
+}
+
+function chooseTryOnProvider() {
+  const requested = String(process.env.TRYON_PROVIDER || "disabled").toLowerCase();
+  if (["aliyun-aitryon", "aliyun", "aitryon-plus"].includes(requested)) return "aliyun-aitryon";
+  if (["fashn", "fal", "fal-fashn"].includes(requested)) return "fashn";
+  return "disabled";
 }
 
 function sanitizeText(value, fallback = "") {
@@ -1372,6 +1612,13 @@ async function handleApi(req, res) {
       assertAdmin(req, url);
       assertImageCooldown(req);
       const result = await callImageGeneration(body);
+      sendJson(res, 200, result);
+      return;
+    }
+    if (pathname === "/api/tryon") {
+      assertAdmin(req, url);
+      assertImageCooldown(req);
+      const result = await callTryOnGeneration(body);
       sendJson(res, 200, result);
       return;
     }

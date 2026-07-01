@@ -30,5 +30,17 @@ services:
         value: wanx2.1-t2i-turbo
       - key: QWEN_IMAGE_SIZE
         value: 1024*1536
+      - key: TRYON_PROVIDER
+        value: disabled
+      - key: ALIYUN_TRYON_MODEL
+        value: aitryon-plus
+      - key: ALIYUN_TRYON_REGION
+        value: cn-beijing
+      - key: FASHN_TRYON_MODEL
+        value: fal-ai/fashn/tryon/v1.5
+      - key: TRYON_IMAGE_STORAGE
+        value: manual
+      - key: TRYON_IMAGE_URL_TTL_MINUTES
+        value: 60
       - key: SUPABASE_TABLE
         value: design_records
