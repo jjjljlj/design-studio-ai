@@ -209,8 +209,8 @@ function conceptCard(record) {
     ["TK钩子", concept.tiktokHook]
   ].filter(([, value]) => value);
   const imageActions = [
-    ["product", "生成产品图", "1024x1536", concept.imagePrompt],
-    ["pattern", "生成花型图", "1024x1024", concept.vectorPrompt]
+    ["product", "生成服装模特照预览", "1024x1536", concept.imagePrompt],
+    ["pattern", "生成花型概念图", "1024x1024", concept.vectorPrompt]
   ].filter(([, , , value]) => value);
 
   return `
@@ -269,7 +269,7 @@ function conceptCard(record) {
       </div>
       ${listingMarkup(concept)}
       <div class="library-image-preview" data-image-output>
-        <div>当前为款式/花型数据库记录。点击上方按钮后，这里会显示AI生成图片预览。</div>
+        <div>当前为款式/花型数据库记录。先确认款式方向，再少量生成模特照或花型概念图。当前文生图不是精确样衣试穿，商用前必须人工质检。</div>
       </div>
       <div class="library-next">
         <strong>下一步</strong>
@@ -433,6 +433,7 @@ document.addEventListener("click", async (event) => {
       },
       body: JSON.stringify({
         prompt,
+        kind: imageButton.dataset.kind || "product",
         size: imageButton.dataset.size || "1024x1024",
         quality: "medium"
       })
@@ -447,6 +448,9 @@ document.addEventListener("click", async (event) => {
     preview.innerHTML = `
       <div class="rights-note">内部演示 / 需确认商用授权 / 建议加水印后再给客户下载。</div>
       ${imageHtml}
+      ${Array.isArray(data.qualityChecklist) && data.qualityChecklist.length
+        ? `<div class="image-qa"><strong>出图后人工质检</strong>${listMarkup(data.qualityChecklist)}</div>`
+        : ""}
       <details>
         <summary>查看使用的提示词</summary>
         <p>${escapeHtml(data.prompt || prompt)}</p>

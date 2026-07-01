@@ -672,19 +672,22 @@ async function callEmployeeDesigner(payload) {
 
 async function callImageGeneration(payload) {
   const provider = chooseImageProvider();
+  const imagePrompt = buildFashionImagePrompt(payload);
+  const safePayload = { ...payload, prompt: imagePrompt };
 
   if (provider === "demo") {
     return {
       mode: "demo",
       provider: "demo",
       image: null,
-      prompt: payload.prompt,
+      prompt: imagePrompt,
+      qualityChecklist: fashionImageQualityChecklist(payload),
       note: "未配置图片模型 API Key，当前显示提示词，不消耗额度。"
     };
   }
 
   if (provider === "qwen") {
-    return callQwenImageGeneration(payload);
+    return callQwenImageGeneration(safePayload);
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
@@ -693,7 +696,8 @@ async function callImageGeneration(payload) {
       mode: "demo",
       provider: "demo",
       image: null,
-      prompt: payload.prompt,
+      prompt: imagePrompt,
+      qualityChecklist: fashionImageQualityChecklist(payload),
       note: "未配置 OPENAI_API_KEY，当前显示提示词，不消耗额度。"
     };
   }
@@ -706,7 +710,7 @@ async function callImageGeneration(payload) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
-      prompt: payload.prompt,
+      prompt: imagePrompt,
       size: payload.size || "1024x1536",
       quality: payload.quality || "medium"
     })
@@ -722,8 +726,62 @@ async function callImageGeneration(payload) {
     mode: "live",
     provider: "openai",
     image: `data:image/png;base64,${data.data?.[0]?.b64_json || ""}`,
-    prompt: payload.prompt
+    prompt: imagePrompt,
+    qualityChecklist: fashionImageQualityChecklist(payload)
   };
+}
+
+function buildFashionImagePrompt(payload = {}) {
+  const rawPrompt = sanitizeText(payload.prompt);
+  const kind = String(payload.kind || payload.mode || payload.usage || "product").toLowerCase();
+  const baseGuardrails = [
+    "Do not add logos, brand marks, readable text, extra accessories that hide the garment, or luxury brand references.",
+    "Keep garment category, neckline, sleeve length, set pieces, hem length, trim, piping, lace, bow details, color family, print scale, and fabric sheen consistent with the provided design brief.",
+    "Avoid distorted hands, extra fingers, warped limbs, twisted torso, broken garment construction, asymmetrical straps, wrong trouser length, transparent fabric errors, and duplicate people.",
+    "Marketplace-safe, realistic ecommerce photography, no sexualized posing, no misleading discount or review text."
+  ].join(" ");
+
+  if (kind === "pattern" || kind === "vector") {
+    return [
+      "Create a clean textile print concept preview for apparel production.",
+      "Flat front-facing seamless repeat direction, no model, no body, no garment mockup unless explicitly requested.",
+      "Show repeatable motifs clearly with production-friendly spacing, clean edges, editable vector-style layers, limited color palette, no brand marks.",
+      rawPrompt,
+      "Quality target: print direction must be clear enough for a designer to redraw as vector/repeat tile; do not generate random text.",
+      baseGuardrails
+    ].filter(Boolean).join("\n\n");
+  }
+
+  return [
+    "Create a realistic fashion ecommerce model photo for apparel development review.",
+    "Single adult female model, full body or 3/4 body visible, natural standing pose, garment clearly visible from front, clean posture, hands relaxed and not covering the product.",
+    "Use a clean studio, warm bedroom, French apartment, or resort lifestyle scene only when it supports the garment; keep background secondary.",
+    "Fabric should read as satin/silky-look when requested: soft sheen, smooth drape, realistic seams and hems, no plastic shine.",
+    rawPrompt,
+    "Quality target: the output must look like a usable apparel product-model preview, not an abstract fashion illustration.",
+    baseGuardrails,
+    "If exact sample consistency is required, this text-to-image workflow is only a concept preview; final commercial image requires image-reference / virtual try-on model support and human QA."
+  ].filter(Boolean).join("\n\n");
+}
+
+function fashionImageQualityChecklist(payload = {}) {
+  const kind = String(payload.kind || payload.mode || payload.usage || "product").toLowerCase();
+  if (kind === "pattern" || kind === "vector") {
+    return [
+      "花型是否清楚可复绘",
+      "是否可做连续 repeat",
+      "是否有错误文字/品牌元素",
+      "颜色数量是否适合打样",
+      "是否需要重新矢量化"
+    ];
+  }
+  return [
+    "是否像真实服装模特照",
+    "版型/领口/袖长/裤长/件数是否正确",
+    "颜色/花型/蕾丝/piping 是否偏离",
+    "手脚/脸/身体比例是否失真",
+    "是否适合仅做内部预览，不能直接商用"
+  ];
 }
 
 async function callQwenImageGeneration(payload) {
@@ -734,6 +792,7 @@ async function callQwenImageGeneration(payload) {
       provider: "demo",
       image: null,
       prompt: payload.prompt,
+      qualityChecklist: fashionImageQualityChecklist(payload),
       note: "未配置 QWEN_API_KEY / DASHSCOPE_API_KEY，当前显示提示词，不消耗额度。"
     };
   }
@@ -814,6 +873,7 @@ async function callQwenImageGeneration(payload) {
         imageUrl,
         image: imageUrl || null,
         prompt: payload.prompt,
+        qualityChecklist: fashionImageQualityChecklist(payload),
         taskId
       };
     }

@@ -617,7 +617,7 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
     const response = await fetch("/api/generate/image", {
       method: "POST",
       headers: adminHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ prompt, size: "1024x1536", quality: "medium" })
+      body: JSON.stringify({ prompt, kind: "product", size: "1024x1536", quality: "medium" })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "图片生成失败");
@@ -634,6 +634,9 @@ document.querySelector("#generateImage").addEventListener("click", async () => {
         <div class="result-block">
           <h3>使用的提示词</h3>
           <p>${escapeHtml(data.prompt)}</p>
+          ${Array.isArray(data.qualityChecklist) && data.qualityChecklist.length
+            ? `<h3>出图后人工质检</h3>${list(data.qualityChecklist)}`
+            : ""}
           ${data.note ? `<p>${escapeHtml(data.note)}</p>` : ""}
         </div>
       </div>`

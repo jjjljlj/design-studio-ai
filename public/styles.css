@@ -2036,6 +2036,53 @@ textarea:focus {
   align-items: start;
 }
 
+.image-workflow-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) 1.3fr;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(21, 59, 67, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.image-workflow-panel h2 {
+  margin: 5px 0 0;
+}
+
+.image-workflow-panel ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.image-workflow-panel li {
+  padding: 14px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 8px;
+  background: rgba(247, 250, 249, 0.92);
+}
+
+.image-workflow-panel strong,
+.image-workflow-panel span {
+  display: block;
+}
+
+.image-workflow-panel strong {
+  margin-bottom: 6px;
+  color: #1f3540;
+}
+
+.image-workflow-panel span {
+  color: #52626c;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .employee-brief,
 .employee-output {
   padding: 20px;
@@ -2342,6 +2389,24 @@ textarea:focus {
   text-align: left;
 }
 
+.image-qa {
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  background: rgba(255, 247, 237, 0.95);
+  color: #7c3d27;
+}
+
+.image-qa strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.image-qa ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
 .library-image-preview summary {
   cursor: pointer;
   color: var(--teal-deep);
@@ -2372,6 +2437,7 @@ textarea:focus {
   .admin-hero,
   .admin-columns,
   .employee-hero,
+  .image-workflow-panel,
   .employee-workspace {
     grid-template-columns: 1fr;
   }
@@ -2382,6 +2448,7 @@ textarea:focus {
   .direction-choices,
   .admin-stats,
   .privacy-grid,
+  .image-workflow-panel ol,
   .library-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2438,6 +2505,7 @@ textarea:focus {
   .share-link-row,
   .admin-stats,
   .privacy-grid,
+  .image-workflow-panel ol,
   .library-grid {
     grid-template-columns: 1fr;
   }
