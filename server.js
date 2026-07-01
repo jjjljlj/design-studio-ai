@@ -805,7 +805,7 @@ async function callQwenImageGeneration(payload) {
     const statusData = await poll.json();
     const status = statusData.output?.task_status;
     if (status === "SUCCEEDED") {
-      const imageUrl = statusData.output?.results?.[0]?.url;
+      const imageUrl = extractQwenImageUrl(statusData);
       return {
         mode: "live",
         provider: "qwen",
@@ -821,6 +821,23 @@ async function callQwenImageGeneration(payload) {
   }
 
   throw new Error("Qwen Image task timed out.");
+}
+
+function extractQwenImageUrl(statusData) {
+  const output = statusData?.output || {};
+  return (
+    output.results?.[0]?.url ||
+    output.results?.[0]?.image_url ||
+    output.results?.[0]?.image ||
+    output.choices?.[0]?.message?.content?.find?.((item) => item?.image)?.image ||
+    output.choices?.[0]?.message?.content?.find?.((item) => item?.url)?.url ||
+    output.choices?.[0]?.message?.content?.find?.((item) => item?.image_url)?.image_url ||
+    output.task_result?.results?.[0]?.url ||
+    output.task_result?.images?.[0]?.url ||
+    output.images?.[0]?.url ||
+    output.images?.[0] ||
+    null
+  );
 }
 
 function normalizeQwenImageSize(size) {
