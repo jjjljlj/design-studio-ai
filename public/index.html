@@ -237,9 +237,10 @@
               <input id="assetInput" type="file" accept="image/*" multiple />
               <div>
                 <strong>上传样衣 / 花型 / 参考图</strong>
-                <span>支持多张预览。当前版本先用于整理素材清单，后续接入图像识别和云端保存。</span>
+                <span>支持多张本地预览。当前版本不会把图片直接传入生图模型，先用于人工参考和素材清单；精确模特照需要接入参考图/虚拟试衣模型。</span>
               </div>
             </div>
+            <p class="field-hint warning-hint">重要：当前“生成模特照预览”是文字生成概念图，不是精确样衣试穿。正式商用前必须人工质检版型、颜色、花型、面料和授权。</p>
 
             <div class="asset-preview" id="assetPreview"></div>
 
@@ -258,7 +259,7 @@
               <div class="tool-actions">
                 <button type="button" id="copyResult">复制结果</button>
                 <button type="button" id="saveProject">保存确认链接</button>
-                <button type="button" id="generateImage">生成主图预览</button>
+                <button type="button" id="generateImage">生成模特照预览</button>
               </div>
             </div>
 
