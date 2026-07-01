@@ -736,27 +736,57 @@ async function callQwenImageGeneration(payload) {
     };
   }
 
+  const model = process.env.QWEN_IMAGE_MODEL || "wanx2.1-t2i-turbo";
   const qwenSize = normalizeQwenImageSize(process.env.QWEN_IMAGE_SIZE || payload.size);
+  const useWanMessageApi = isWanMessageImageModel(model);
+  const apiBase = qwenImageApiBaseUrl();
 
-  const response = await fetch("https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis", {
+  const response = await fetch(
+    useWanMessageApi
+      ? `${apiBase}/services/aigc/image-generation/generation`
+      : "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis",
+    {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "X-DashScope-Async": "enable"
     },
-    body: JSON.stringify({
-      model: process.env.QWEN_IMAGE_MODEL || "wanx2.1-t2i-turbo",
-      input: {
-        prompt: payload.prompt,
-        negative_prompt: payload.negative || "low quality, blurry, distorted garment, wrong color, extra logo"
-      },
-      parameters: {
-        size: qwenSize,
-        n: 1
-      }
-    })
-  });
+    body: JSON.stringify(
+      useWanMessageApi
+        ? {
+            model,
+            input: {
+              messages: [
+                {
+                  role: "user",
+                  content: [
+                    { text: payload.prompt }
+                  ]
+                }
+              ]
+            },
+            parameters: {
+              size: qwenSize,
+              n: 1,
+              watermark: false,
+              thinking_mode: true
+            }
+          }
+        : {
+            model,
+            input: {
+              prompt: payload.prompt,
+              negative_prompt: payload.negative || "low quality, blurry, distorted garment, wrong color, extra logo"
+            },
+            parameters: {
+              size: qwenSize,
+              n: 1
+            }
+          }
+    )
+    }
+  );
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -769,7 +799,7 @@ async function callQwenImageGeneration(payload) {
 
   for (let i = 0; i < 30; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const poll = await fetch(`https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`, {
+    const poll = await fetch(`${apiBase}/tasks/${taskId}`, {
       headers: { "Authorization": `Bearer ${apiKey}` }
     });
     const statusData = await poll.json();
@@ -797,8 +827,23 @@ function normalizeQwenImageSize(size) {
   const raw = String(size || "1024*1440").trim().replace("x", "*");
   const match = raw.match(/^(\d{3,4})\*(\d{3,4})$/);
   if (!match) return "1024*1440";
-  const clamp = (value) => Math.min(1440, Math.max(512, Number(value)));
+  const clamp = (value) => Math.min(4096, Math.max(768, Number(value)));
   return `${clamp(match[1])}*${clamp(match[2])}`;
+}
+
+function isWanMessageImageModel(model) {
+  return /^(wan2\.[67]-image|qwen-image|z-image)/i.test(String(model || ""));
+}
+
+function qwenImageApiBaseUrl() {
+  const explicitBase = String(process.env.QWEN_IMAGE_BASE_URL || process.env.DASHSCOPE_IMAGE_BASE_URL || "").trim();
+  if (explicitBase) return explicitBase.replace(/\/$/, "").replace(/\/services\/aigc\/.*$/, "");
+
+  const compatibleBase = String(process.env.QWEN_BASE_URL || "").trim();
+  const workspaceMatch = compatibleBase.match(/^(https:\/\/[^/]+)\/compatible-mode\/v1\/?$/);
+  if (workspaceMatch) return `${workspaceMatch[1]}/api/v1`;
+
+  return "https://dashscope.aliyuncs.com/api/v1";
 }
 
 function getRuntimeStatus() {
